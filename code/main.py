@@ -1,5 +1,6 @@
 import argparse
 import os
+import glob  # <--- Added for smart file search
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -43,7 +44,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_root", type=str, required=True, help="Root folder of data")
     parser.add_argument("--games", nargs="+", required=True, help="List of game folders")
-    parser.add_argument("--csv_name", type=str, default="game.csv")
+    # parser.add_argument("--csv_name") # <--- Removed argument, we auto-detect it now
     parser.add_argument("--out", type=str, default="experiments")
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch", type=int, default=32)
@@ -62,9 +63,23 @@ def main():
     # 1. Data Loading
     all_samples = []
     for g in args.games:
-        path = os.path.join(args.data_root, g)
-        csv = os.path.join(path, args.csv_name)
-        all_samples.extend(scan_game(path, csv))
+        # Construct path to the specific game folder (e.g., .../data/game2_per_frame)
+        game_folder_path = os.path.join(args.data_root, g)
+        
+        # --- FIX: Smart CSV Search using glob ---
+        # Search for ANY file ending with .csv inside the folder
+        found_csvs = glob.glob(os.path.join(game_folder_path, "*.csv"))
+        
+        if len(found_csvs) > 0:
+            # Take the first CSV file found (e.g., game2.csv or game4.csv)
+            csv_path = found_csvs[0]
+            print(f"Found CSV for {g}: {csv_path}")
+            all_samples.extend(scan_game(game_folder_path, csv_path))
+        else:
+            # If no CSV file is found in the folder
+            print(f"Warning: No CSV file found in {game_folder_path}, skipping this game.")
+            continue
+        # --------------------------------------
         
     if not all_samples:
         print("No samples found. Check paths.")
@@ -80,7 +95,7 @@ def main():
         train_samples = syn_samples
         val_samples = real_samples
     else: # finetune
-        # Train on Synthetic + % of Real
+        # Train on Synthetic + % of Real (Sim-to-Real adaptation)
         cut = int(len(real_samples) * args.real_percent)
         train_samples = syn_samples + real_samples[:cut]
         val_samples = real_samples[cut:]
@@ -91,7 +106,7 @@ def main():
     train_ds = ChessBoardDataset(train_samples, transform=get_transforms("train"))
     val_ds = ChessBoardDataset(val_samples, transform=get_transforms("val"))
     
-    # Note: Smaller batch size is safer for full images + STN memory usage
+    # Note: num_workers=4 is safe and efficient for SLURM jobs
     train_loader = DataLoader(train_ds, batch_size=args.batch, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_ds, batch_size=args.batch, shuffle=False, num_workers=4)
     
@@ -117,6 +132,7 @@ def main():
     print("Training Complete. Evaluating Full Board Accuracy (Strict Metric)...")
     
     # Final Evaluation
+    # Load the best weights saved during training
     model.load_state_dict(torch.load(os.path.join(args.out, "best_model.pth")))
     evaluate_full_board_accuracy(model, val_loader, device)
 
