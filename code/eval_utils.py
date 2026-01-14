@@ -1,39 +1,28 @@
-from typing import Optional, Tuple
-import numpy as np
 import torch
-from PIL import Image
-from torchvision import transforms
 
-from data import (
-    cut_tiles_3x3, crop_board_region, id_to_piece, board_to_fen, EMPTY
-)
-
-def predict_fen_from_image(
-    model,
-    image_path: str,
-    device: str,
-    tile_size: int = 96,
-    board_bbox: Optional[Tuple[int,int,int,int]] = None,
-) -> str:
+def evaluate_full_board_accuracy(model, loader, device):
+    """
+    Evaluates the model on the 'Full Board' metric.
+    A prediction is considered correct ONLY if all 64 tiles on the board are classified correctly.
+    """
     model.eval()
-    img = Image.open(image_path).convert("RGB")
-    board_img = crop_board_region(img, board_bbox)
-    tiles = cut_tiles_3x3(board_img)
-
-    tf = transforms.Compose([
-        transforms.Resize((tile_size, tile_size)),
-        transforms.ToTensor(),
-    ])
-
-    batch = torch.stack([tf(t) for t in tiles], dim=0).to(device)
-
+    correct_boards = 0
+    total_boards = 0
+    
     with torch.no_grad():
-        logits = model(batch)
-        preds = torch.argmax(logits, dim=1).cpu().numpy()
-
-    board = np.full((8, 8), EMPTY, dtype=object)
-    for i, pid in enumerate(preds):
-        r, c = divmod(i, 8)
-        board[r, c] = id_to_piece[int(pid)]
-
-    return board_to_fen(board)
+        for imgs, labels in loader:
+            imgs, labels = imgs.to(device), labels.to(device)
+            output = model(imgs) # [B, 64, 13]
+            preds = output.argmax(dim=2) # [B, 64]
+            
+            # Check per board: Are all 64 predictions equal to the 64 labels?
+            # (preds == labels) returns a boolean matrix [B, 64]
+            # .all(dim=1) reduces it to [B], True only if the whole row is True.
+            board_correct = (preds == labels).all(dim=1)
+            
+            correct_boards += board_correct.sum().item()
+            total_boards += imgs.size(0)
+            
+    acc = 100.0 * correct_boards / total_boards
+    print(f"Full Board Accuracy (All 64 tiles correct): {acc:.2f}%")
+    return acc
