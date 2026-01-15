@@ -18,13 +18,7 @@ def set_seed(seed=42):
     torch.cuda.manual_seed_all(seed)
 
 def get_model(device):
-    # Using ResNet18 as a backbone
-    model = models.resnet18(pretrained=True)
-    # Modify the first layer to accept the specific input size if needed, 
-    # but ResNet takes standard images so we just modify the output.
-    
-    # We need 64 outputs, each with 13 classes (12 pieces + empty)
-    # ResNet18 output is 512 before the FC layer
+    model = models.resnet18(weights='DEFAULT')
     model.fc = nn.Linear(512, 64 * 13)
     return model.to(device)
 
@@ -35,17 +29,13 @@ def train(model, train_loader, val_loader, optimizer, criterion, device, epochs)
         correct_tiles = 0
         total_tiles = 0
         
-        for imgs, labels, _ in train_loader: # Unpack 3 values (ignore path)
+        for imgs, labels, _ in train_loader:
             imgs, labels = imgs.to(device), labels.to(device)
             
             optimizer.zero_grad()
-            output = model(imgs) # [B, 64*13]
-            
-            # Reshape output to [B, 64, 13] for CrossEntropy
+            output = model(imgs)
             output = output.view(-1, 64, 13)
             
-            # CrossEntropy expects [B, Class, D1, D2...] or flat [N, Class]
-            # Flatten to [B*64, 13] and labels to [B*64]
             loss = criterion(output.view(-1, 13), labels.view(-1))
             
             loss.backward()
@@ -53,7 +43,6 @@ def train(model, train_loader, val_loader, optimizer, criterion, device, epochs)
             
             total_loss += loss.item()
             
-            # Calculate simple tile accuracy
             preds = output.argmax(dim=2)
             correct_tiles += (preds == labels).sum().item()
             total_tiles += labels.numel()
@@ -61,7 +50,6 @@ def train(model, train_loader, val_loader, optimizer, criterion, device, epochs)
         avg_loss = total_loss / len(train_loader)
         tile_acc = 100.0 * correct_tiles / total_tiles
         
-        # Validation step
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         
         print(f"Epoch {epoch+1}/{epochs}")
@@ -75,7 +63,7 @@ def validate(model, val_loader, criterion, device):
     total = 0
     
     with torch.no_grad():
-        for imgs, labels, _ in val_loader: # Unpack 3 values
+        for imgs, labels, _ in val_loader:
             imgs, labels = imgs.to(device), labels.to(device)
             
             output = model(imgs)
@@ -107,41 +95,36 @@ def main():
     
     set_seed()
     
-    # 1. Collect all samples
     all_samples = []
     for game in args.games:
         game_path = os.path.join(args.data_root, game)
-        csv_path = os.path.join(game_path, f"{game.split('_')[0]}.csv") # e.g. game2.csv
+        csv_path = os.path.join(game_path, f"{game.split('_')[0]}.csv")
         print(f"Found CSV for {game}: {csv_path}")
         all_samples.extend(scan_game(game_path, csv_path))
         
-    # 2. Split into Synthetic and Real
     synthetic_samples = [s for s in all_samples if s.domain == 'synthetic']
     real_samples = [s for s in all_samples if s.domain == 'real']
     
-    # 3. Create Train/Val Split based on Mode
     if args.mode == 'zero_shot':
-        # Train on ALL synthetic, Val on ALL real
         train_samples = synthetic_samples
         val_samples = real_samples
+        folder_name = "visual_results_zero_shot"
         
     elif args.mode == 'finetune':
-        # Shuffle real samples
         random.shuffle(real_samples)
-        
-        # Take a percentage of real samples for training
         n_real_train = int(len(real_samples) * args.real_percent)
         real_train = real_samples[:n_real_train]
         real_val = real_samples[n_real_train:]
         
-        # Train = All Synthetic + Some Real
         train_samples = synthetic_samples + real_train
         val_samples = real_val
+        
+        # Create folder name like: visual_results_finetune_50
+        folder_name = f"visual_results_finetune_{int(args.real_percent*100)}"
     
     print(f"Training set: {len(train_samples)} samples")
     print(f"Validation set: {len(val_samples)} samples")
     
-    # Transforms
     transform = transforms.Compose([
         transforms.Resize((256, 256)),
         transforms.ToTensor(),
@@ -153,17 +136,15 @@ def main():
     train_loader = DataLoader(train_ds, batch_size=args.batch, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_ds, batch_size=args.batch, shuffle=False, num_workers=2)
     
-    # Model Setup
     model = get_model(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
     
-    # Training Loop
     train(model, train_loader, val_loader, optimizer, criterion, device, args.epochs)
     
-    # Final Evaluation
-    print("Training Complete. Evaluating Full Board Accuracy (Strict Metric)...")
-    evaluate_full_board_accuracy(model, val_loader, device)
+    print("Training Complete. Evaluating Full Board Accuracy...")
+    # Pass the dynamic folder name here
+    evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
 
 if __name__ == '__main__':
     main()
