@@ -48,7 +48,6 @@ def draw_professional_board(ax, fen_str):
             else:
                 piece_symbol = FEN_TO_UNICODE.get(char, char)
                 # Render piece text
-                # We draw it twice: once as a shadow/outline, once as the color
                 text_color = 'black' if char in 'pnbrqk' else 'white'
                 
                 # Shadow/Outline
@@ -119,6 +118,12 @@ def evaluate_full_board_accuracy(model, data_loader, device):
             labels = labels.to(device)
             
             outputs = model(images)
+            
+            # --- THE FIX IS HERE ---
+            # Reshape from [Batch, 832] to [Batch, 64, 13]
+            outputs = outputs.view(-1, 64, 13)
+            # -----------------------
+            
             preds = torch.argmax(outputs, dim=2)
             board_matches = (preds == labels).all(dim=1)
             
