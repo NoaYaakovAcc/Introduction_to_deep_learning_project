@@ -1,0 +1,40 @@
+SLURM_JOBID=13214769
+SLURM_JOB_NODELIST=ise-pheno-11
+Fri Jan 16 14:32:34 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 555.42.06              Driver Version: 555.42.06      CUDA Version: 12.5     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce GTX 1080 Ti     On  |   00000000:03:00.0 Off |                  N/A |
+| 21%   36C    P8              9W /  250W |       2MiB /  11264MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Running on cuda with mode: zero_shot
+Found CSV for game2_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game2_per_frame/game2.csv
+  [Scan] Found 77 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game2_per_frame
+Found CSV for game4_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game4_per_frame/game4.csv
+  [Scan] Found 184 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game4_per_frame
+Found CSV for game5_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game5_per_frame/game5.csv
+  [Scan] Found 110 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game5_per_frame
+Training set: 294 samples
+Validation set: 77 samples
+Starting training...
+Training:   0%|          | 0/10 [00:00<?, ?it/s]                                                Traceback (most recent call last):
+  File "/home/noayaak/final_project/Introduction_to_deep_learning_project/code/main.py", line 110, in <module>
+    main()
+  File "/home/noayaak/final_project/Introduction_to_deep_learning_project/code/main.py", line 98, in main
+    train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
+  File "/home/noayaak/final_project/Introduction_to_deep_learning_project/code/train_utils.py", line 14, in train_one_epoch
+    for imgs, labels in pbar:
+ValueError: too many values to unpack (expected 2)

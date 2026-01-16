@@ -1,0 +1,199 @@
+SLURM_JOBID=13204346
+SLURM_JOB_NODELIST=cs-pheno-12
+Fri Jan 16 12:55:11 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.4     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce GTX 1080 Ti     Off |   00000000:03:00.0 Off |                  N/A |
+| 21%   38C    P8             10W /  250W |       0MiB /  11264MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Running on cuda with mode: zero_shot
+Found CSV for game2_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game2_per_frame/game2.csv
+  [Scan] Found 77 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game2_per_frame
+Found CSV for game4_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game4_per_frame/game4.csv
+  [Scan] Found 184 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game4_per_frame
+Found CSV for game5_per_frame: /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game5_per_frame/game5.csv
+  [Scan] Found 110 valid samples in /home/noayaak/final_project/Introduction_to_deep_learning_project/data/game5_per_frame
+Training set: 294 samples
+Validation set: 77 samples
+Epoch 1/50
+Train Loss: 2.2579 Tile-Acc: 26.22% | Val Loss: 2.2052 Tile-Acc: 32.20%
+
+Epoch 2/50
+Train Loss: 1.1225 Tile-Acc: 66.43% | Val Loss: 1.2253 Tile-Acc: 64.73%
+
+Epoch 3/50
+Train Loss: 0.4954 Tile-Acc: 86.81% | Val Loss: 1.2094 Tile-Acc: 64.51%
+
+Epoch 4/50
+Train Loss: 0.3694 Tile-Acc: 89.46% | Val Loss: 1.2381 Tile-Acc: 64.94%
+
+Epoch 5/50
+Train Loss: 0.2885 Tile-Acc: 91.60% | Val Loss: 1.4496 Tile-Acc: 63.78%
+
+Epoch 6/50
+Train Loss: 0.2239 Tile-Acc: 93.38% | Val Loss: 1.7616 Tile-Acc: 62.64%
+
+Epoch 7/50
+Train Loss: 0.1883 Tile-Acc: 94.02% | Val Loss: 1.8436 Tile-Acc: 62.80%
+
+Epoch 8/50
+Train Loss: 0.1551 Tile-Acc: 95.04% | Val Loss: 1.9978 Tile-Acc: 61.97%
+
+Epoch 9/50
+Train Loss: 0.1241 Tile-Acc: 95.74% | Val Loss: 2.0736 Tile-Acc: 65.18%
+
+Epoch 10/50
+Train Loss: 0.1020 Tile-Acc: 96.59% | Val Loss: 2.2178 Tile-Acc: 63.64%
+
+Epoch 11/50
+Train Loss: 0.0869 Tile-Acc: 96.98% | Val Loss: 2.2652 Tile-Acc: 66.34%
+
+Epoch 12/50
+Train Loss: 0.0710 Tile-Acc: 97.43% | Val Loss: 2.4737 Tile-Acc: 66.38%
+
+Epoch 13/50
+Train Loss: 0.0666 Tile-Acc: 97.64% | Val Loss: 2.6256 Tile-Acc: 66.66%
+
+Epoch 14/50
+Train Loss: 0.0636 Tile-Acc: 97.78% | Val Loss: 2.4508 Tile-Acc: 67.27%
+
+Epoch 15/50
+Train Loss: 0.0600 Tile-Acc: 97.90% | Val Loss: 2.4098 Tile-Acc: 65.62%
+
+Epoch 16/50
+Train Loss: 0.0539 Tile-Acc: 98.16% | Val Loss: 2.4095 Tile-Acc: 67.51%
+
+Epoch 17/50
+Train Loss: 0.0451 Tile-Acc: 98.51% | Val Loss: 2.4117 Tile-Acc: 70.19%
+
+Epoch 18/50
+Train Loss: 0.0366 Tile-Acc: 98.72% | Val Loss: 2.6666 Tile-Acc: 67.15%
+
+Epoch 19/50
+Train Loss: 0.0382 Tile-Acc: 98.76% | Val Loss: 2.7631 Tile-Acc: 67.49%
+
+Epoch 20/50
+Train Loss: 0.0337 Tile-Acc: 98.93% | Val Loss: 2.7162 Tile-Acc: 67.41%
+
+Epoch 21/50
+Train Loss: 0.0226 Tile-Acc: 99.26% | Val Loss: 3.2736 Tile-Acc: 67.41%
+
+Epoch 22/50
+Train Loss: 0.0199 Tile-Acc: 99.38% | Val Loss: 3.4938 Tile-Acc: 67.25%
+
+Epoch 23/50
+Train Loss: 0.0267 Tile-Acc: 99.25% | Val Loss: 2.9545 Tile-Acc: 68.36%
+
+Epoch 24/50
+Train Loss: 0.0277 Tile-Acc: 99.20% | Val Loss: 2.8867 Tile-Acc: 68.18%
+
+Epoch 25/50
+Train Loss: 0.0236 Tile-Acc: 99.23% | Val Loss: 2.6462 Tile-Acc: 67.45%
+
+Epoch 26/50
+Train Loss: 0.0171 Tile-Acc: 99.48% | Val Loss: 3.1373 Tile-Acc: 69.85%
+
+Epoch 27/50
+Train Loss: 0.0162 Tile-Acc: 99.56% | Val Loss: 2.9844 Tile-Acc: 69.07%
+
+Epoch 28/50
+Train Loss: 0.0154 Tile-Acc: 99.53% | Val Loss: 3.5094 Tile-Acc: 66.15%
+
+Epoch 29/50
+Train Loss: 0.0169 Tile-Acc: 99.56% | Val Loss: 3.1212 Tile-Acc: 67.51%
+
+Epoch 30/50
+Train Loss: 0.0150 Tile-Acc: 99.59% | Val Loss: 3.0901 Tile-Acc: 68.06%
+
+Epoch 31/50
+Train Loss: 0.0105 Tile-Acc: 99.77% | Val Loss: 3.6159 Tile-Acc: 67.59%
+
+Epoch 32/50
+Train Loss: 0.0108 Tile-Acc: 99.70% | Val Loss: 3.8290 Tile-Acc: 69.05%
+
+Epoch 33/50
+Train Loss: 0.0105 Tile-Acc: 99.74% | Val Loss: 3.5175 Tile-Acc: 70.01%
+
+Epoch 34/50
+Train Loss: 0.0133 Tile-Acc: 99.67% | Val Loss: 3.2748 Tile-Acc: 68.12%
+
+Epoch 35/50
+Train Loss: 0.0128 Tile-Acc: 99.71% | Val Loss: 3.4357 Tile-Acc: 68.65%
+
+Epoch 36/50
+Train Loss: 0.0150 Tile-Acc: 99.70% | Val Loss: 2.8270 Tile-Acc: 68.89%
+
+Epoch 37/50
+Train Loss: 0.0172 Tile-Acc: 99.50% | Val Loss: 3.1613 Tile-Acc: 69.34%
+
+Epoch 38/50
+Train Loss: 0.0192 Tile-Acc: 99.45% | Val Loss: 2.8624 Tile-Acc: 66.94%
+
+Epoch 39/50
+Train Loss: 0.0151 Tile-Acc: 99.57% | Val Loss: 2.7423 Tile-Acc: 68.38%
+
+Epoch 40/50
+Train Loss: 0.0096 Tile-Acc: 99.72% | Val Loss: 3.5923 Tile-Acc: 68.57%
+
+Epoch 41/50
+Train Loss: 0.0056 Tile-Acc: 99.83% | Val Loss: 3.8281 Tile-Acc: 68.04%
+
+Epoch 42/50
+Train Loss: 0.0043 Tile-Acc: 99.90% | Val Loss: 3.9700 Tile-Acc: 68.83%
+
+Epoch 43/50
+Train Loss: 0.0041 Tile-Acc: 99.89% | Val Loss: 4.0370 Tile-Acc: 68.97%
+
+Epoch 44/50
+Train Loss: 0.0040 Tile-Acc: 99.91% | Val Loss: 4.1227 Tile-Acc: 67.49%
+
+Epoch 45/50
+Train Loss: 0.0031 Tile-Acc: 99.93% | Val Loss: 4.3618 Tile-Acc: 69.16%
+
+Epoch 46/50
+Train Loss: 0.0020 Tile-Acc: 99.97% | Val Loss: 4.4453 Tile-Acc: 67.76%
+
+Epoch 47/50
+Train Loss: 0.0017 Tile-Acc: 99.96% | Val Loss: 4.6684 Tile-Acc: 69.40%
+
+Epoch 48/50
+Train Loss: 0.0016 Tile-Acc: 99.96% | Val Loss: 4.7654 Tile-Acc: 68.83%
+
+Epoch 49/50
+Train Loss: 0.0016 Tile-Acc: 99.96% | Val Loss: 4.5121 Tile-Acc: 67.96%
+
+Epoch 50/50
+Train Loss: 0.0016 Tile-Acc: 99.97% | Val Loss: 4.6806 Tile-Acc: 68.71%
+
+Training Complete. Evaluating Full Board Accuracy...
+
+============================================================
+STARTING VISUAL EVALUATION (Saving to visual_results_zero_shot)
+============================================================
+Saving 10 visualization images...
+Sample 0 [⚠️ 89.1%]: game2_per_frame | frame_000200.jpg
+Sample 1 [⚠️ 85.9%]: game2_per_frame | frame_000588.jpg
+Sample 2 [⚠️ 82.8%]: game2_per_frame | frame_000620.jpg
+Sample 3 [⚠️ 78.1%]: game2_per_frame | frame_000840.jpg
+Sample 4 [⚠️ 70.3%]: game2_per_frame | frame_000856.jpg
+Sample 5 [⚠️ 71.9%]: game2_per_frame | frame_000872.jpg
+Sample 6 [⚠️ 68.8%]: game2_per_frame | frame_000896.jpg
+Sample 7 [⚠️ 67.2%]: game2_per_frame | frame_000936.jpg
+Sample 8 [⚠️ 68.8%]: game2_per_frame | frame_001024.jpg
+Sample 9 [⚠️ 70.3%]: game2_per_frame | frame_001040.jpg
+
+Final Perfect Board Accuracy: 0.00%

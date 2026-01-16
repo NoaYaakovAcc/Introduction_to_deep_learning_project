@@ -11,7 +11,10 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
     total_tiles = 0
     
     pbar = tqdm(loader, desc="Training", leave=False)
-    for imgs, labels in pbar:
+    
+    # FIXED: The loader returns 3 values (images, labels, metadata).
+    # We add ', _' to ignore the metadata/path variable.
+    for imgs, labels, _ in pbar:
         imgs, labels = imgs.to(device), labels.to(device)
         
         optimizer.zero_grad()
@@ -33,7 +36,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
         
         pbar.set_postfix({'loss': loss.item(), 'acc': 100. * correct_tiles / total_tiles})
         
-    return total_loss / len(loader), correct_tiles / total_tiles
+    return total_loss / len(loader), 100. * correct_tiles / total_tiles
 
 def validate(model, loader, criterion, device):
     """
@@ -45,7 +48,8 @@ def validate(model, loader, criterion, device):
     total_tiles = 0
     
     with torch.no_grad():
-        for imgs, labels in loader:
+        # FIXED: Added ', _' here as well to handle the 3rd return value
+        for imgs, labels, _ in loader:
             imgs, labels = imgs.to(device), labels.to(device)
             output = model(imgs)
             
@@ -56,4 +60,4 @@ def validate(model, loader, criterion, device):
             correct_tiles += (preds == labels).sum().item()
             total_tiles += labels.numel()
             
-    return total_loss / len(loader), correct_tiles / total_tiles
+    return total_loss / len(loader), 100. * correct_tiles / total_tiles
