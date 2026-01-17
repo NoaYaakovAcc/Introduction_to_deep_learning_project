@@ -11,7 +11,7 @@ from PIL import Image
 BLENDER_EXE = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
 BLEND_FILE = r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\code\chessboard_generation\chess-set.blend"
 SCRIPT_FILE = r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\code\chessboard_generation\chess_position_api_v2.py"
-RESOLUTION = 4800  # Resolution defined here to use in crop calculations
+RESOLUTION = 2400  # Resolution defined here to use in crop calculations
 
 
 def generate_dataset():
