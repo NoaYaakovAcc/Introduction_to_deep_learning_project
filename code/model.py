@@ -56,37 +56,38 @@ class ChessNet(nn.Module):
     """
     End-to-End Network: STN -> Grid Slicing -> Classification.
     """
-    def __init__(self, num_classes=13):
+    def __init__(self, num_classes=13, resolution=256):
         super(ChessNet, self).__init__()
         self.stn = STN()
+        self.resolution = resolution
+        self.tile_size = resolution // 8
         
-        # Tile Classifier: A simple CNN that processes a single 32x32 tile.
-        # (Assuming input 256x256, dividing by 8 gives 32x32 tiles).
+        # Tile Classifier: A simple CNN that processes a single tile_size x tile_size tile.
         self.conv = nn.Sequential(
             nn.Conv2d(3, 32, 3, padding=1), 
             nn.BatchNorm2d(32), 
             nn.ReLU(),
-            nn.MaxPool2d(2), # 32 -> 16
+            nn.MaxPool2d(2), # tile_size -> tile_size//2
             
             nn.Conv2d(32, 64, 3, padding=1), 
             nn.BatchNorm2d(64), 
             nn.ReLU(),
-            nn.MaxPool2d(2), # 16 -> 8
+            nn.MaxPool2d(2), # tile_size//2 -> tile_size//4
             
             nn.Flatten()
         )
         
-        # Input features: 64 channels * 8 * 8 spatial size
-        self.fc = nn.Linear(64 * 8 * 8, num_classes)
+        # Input features: 64 channels * (tile_size//4) * (tile_size//4) spatial size
+        self.fc = nn.Linear(64 * (self.tile_size // 4) * (self.tile_size // 4), num_classes)
 
     def forward(self, x):
         # 1. Apply STN to rectify the full board image
         x = self.stn(x) 
         
         # 2. Slice the rectified image into 64 tiles using tensor operations
-        # Input x shape: [Batch, 3, 256, 256]
+        # Input x shape: [Batch, 3, resolution, resolution]
         B, C, H, W = x.shape
-        h, w = H // 8, W // 8 # Calculate tile size (e.g., 32)
+        h, w = self.tile_size, self.tile_size  # Tile size (e.g., 32 for 256x256)
         
         # 'unfold' extracts sliding local blocks.
         # We unfold height (dim 2) and width (dim 3).

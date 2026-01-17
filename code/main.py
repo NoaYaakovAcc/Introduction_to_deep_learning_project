@@ -3,12 +3,13 @@ import argparse
 import random
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
-
 # --- Import custom modules ---
 from data import scan_game, ChessBoardDataset
+import plot
 from eval_utils import evaluate_full_board_accuracy
 from model import ChessNet  # Importing the STN+CNN model
 from train_utils import train_one_epoch, validate # Importing training logic
@@ -21,6 +22,7 @@ def set_seed(seed=42):
 
 def main():
     # 1.1 Parameters chosen for this run
+    RESOLUTION = 480  # Global parameter for image resolution (X*X)
     games_numbers = [2,4,5,6,7]
     out = 'experiments'
     epochs = 50
@@ -104,7 +106,7 @@ def main():
     
     # 3. Transforms and Loaders
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((RESOLUTION, RESOLUTION)),
         transforms.ToTensor(),
     ])
     
@@ -116,18 +118,23 @@ def main():
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py
-    model = ChessNet(num_classes=13).to(device)
+    model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
     
     optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     
     # 5. Training Loop
     print("Starting training...")
-    for epoch in range(epochs):
+    train_losses = []
+    val_losses = []
+    for epoch in tqdm(epochs):
         # Using functions from train_utils.py
         train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
-        
+
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+
         print(f"Epoch {epoch+1}/{epochs}")
         print(f"Train Loss: {train_loss:.4f} Tile-Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} Tile-Acc: {val_acc:.2f}%")
         print("")
@@ -135,6 +142,9 @@ def main():
     # 6. Final Evaluation
     print("Training Complete. Evaluating Full Board Accuracy...")
     evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
+    plot.plot_list(train_losses, "Loss", "Epochs", "Training Loss over Epochs")
+    plot.plot_list(val_losses, "Loss", "Epochs", "Validation Loss over Epoch")
+
 
 if __name__ == '__main__':
     main()
