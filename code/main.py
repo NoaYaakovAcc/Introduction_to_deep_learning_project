@@ -28,7 +28,7 @@ def main():
     epochs = 50
     batch = 32
     lr = 0.001
-    mode_type = 0  # 0 for zero_shot, 1 for finetune
+    mode_type = 1  # 0 for zero_shot, 1 for finetune
     real_percent = 0.1  # Used only in finetune mode
     have_args = True
 
@@ -59,17 +59,16 @@ def main():
     else:
     #1.4 parameter adjustments
         mode = 'finetune' if mode_type == 1 else 'zero_shot'
-        data_root = r'../data'
+        data_root = r'data'
         games = []
         for game in games_numbers:
             games.append(f'game{game}_per_frame')
-            print(games)
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Running on {device} with mode: {mode}")
     set_seed()
-    
+
     # 2. Data Preparation
     all_samples = []
     for game in games:
@@ -127,23 +126,20 @@ def main():
     print("Starting training...")
     train_losses = []
     val_losses = []
-    for epoch in tqdm(epochs):
+    for epoch in tqdm(range(epochs)):
         # Using functions from train_utils.py
-        train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        model, train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
-
+    
         train_losses.append(train_loss)
         val_losses.append(val_loss)
-
-        print(f"Epoch {epoch+1}/{epochs}")
-        print(f"Train Loss: {train_loss:.4f} Tile-Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} Tile-Acc: {val_acc:.2f}%")
-        print("")
     
     # 6. Final Evaluation
     print("Training Complete. Evaluating Full Board Accuracy...")
-    evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
     plot.plot_list(train_losses, "Loss", "Epochs", "Training Loss over Epochs")
     plot.plot_list(val_losses, "Loss", "Epochs", "Validation Loss over Epoch")
+    evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
+
 
 
 if __name__ == '__main__':

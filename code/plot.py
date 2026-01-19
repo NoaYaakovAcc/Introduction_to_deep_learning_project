@@ -1,3 +1,6 @@
+import matplotlib
+# This MUST happen before importing pyplot
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 def plot_list(data: list[float], text1: str, text2: str, headline: str):

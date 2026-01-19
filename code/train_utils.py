@@ -1,6 +1,7 @@
 import torch
 from tqdm import tqdm
 
+
 def train_one_epoch(model, loader, optimizer, criterion, device):
     """
     Performs one epoch of training.
@@ -9,9 +10,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
     total_loss = 0.0
     correct_tiles = 0
     total_tiles = 0
-    
-    pbar = tqdm(loader, desc="Training", leave=False)
-    for imgs, labels in pbar:
+    for imgs, labels, adresses in loader:
         imgs, labels = imgs.to(device), labels.to(device)
         
         optimizer.zero_grad()
@@ -31,9 +30,8 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
         correct_tiles += (preds == labels).sum().item()
         total_tiles += labels.numel() # Batch * 64
         
-        pbar.set_postfix({'loss': loss.item(), 'acc': 100. * correct_tiles / total_tiles})
-        
-    return total_loss / len(loader), correct_tiles / total_tiles
+       
+    return model, total_loss / len(loader), correct_tiles / total_tiles
 
 def validate(model, loader, criterion, device):
     """
@@ -45,7 +43,7 @@ def validate(model, loader, criterion, device):
     total_tiles = 0
     
     with torch.no_grad():
-        for imgs, labels in loader:
+        for imgs, labels, adresses in loader:
             imgs, labels = imgs.to(device), labels.to(device)
             output = model(imgs)
             
