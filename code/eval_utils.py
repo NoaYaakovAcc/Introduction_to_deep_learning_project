@@ -10,8 +10,18 @@ import numpy as np
 
 # Maps indices to characters
 IDX_TO_PIECE = {
-    0: 'P', 1: 'N', 2: 'B', 3: 'R', 4: 'Q', 5: 'K',
-    6: 'p', 7: 'n', 8: 'b', 9: 'r', 10: 'q', 11: 'k',
+    0: 'P', 
+    1: 'R', 
+    2: 'N', 
+    3: 'B', 
+    4: 'Q', 
+    5: 'K',
+    6: 'p', 
+    7: 'r', 
+    8: 'n', 
+    9: 'b', 
+    10: 'q', 
+    11: 'k',
     12: '.'
 }
 

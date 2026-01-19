@@ -41,7 +41,8 @@ def scan_game(game_root, csv_path):
         try:
             fen = row['fen'] 
             frame_num = int(row['from_frame'])
-            # Assuming 6-digit filename format e.g. frame_000200.jpg
+            # Assuming 6-digit filename format 
+            # example: frame_000200.jpg
             filename = f"frame_{frame_num:06d}.jpg" 
         except (KeyError, ValueError):
             continue
@@ -58,9 +59,24 @@ class ChessBoardDataset(Dataset):
         self.samples = samples
         self.transform = transform
         self.piece_map = {
-            'P':0, 'N':1, 'B':2, 'R':3, 'Q':4, 'K':5,
-            'p':6, 'n':7, 'b':8, 'r':9, 'q':10, 'k':11,
-            '.':12
+            # White pieces
+            'P': 0,  # Pawn
+            'R': 1,  # Rook 
+            'N': 2,  # Knight 
+            'B': 3,  # Bishop 
+            'Q': 4,  # Queen
+            'K': 5,  # King
+            
+            # Black pieces
+            'p': 6,  # Pawn
+            'r': 7,  # Rook 
+            'n': 8,  # Knight 
+            'b': 9,  # Bishop 
+            'q': 10, # Queen
+            'k': 11, # King
+            
+            # Empty
+            '.': 12
         }
 
     def parse_fen(self, fen):

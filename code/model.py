@@ -101,6 +101,7 @@ class ChessNet(nn.Module):
         # New shape: [B * 64, C, h, w]
         tiles = tiles.view(-1, C, h, w)
         
+        
         # 3. Classify all tiles simultaneously
         features = self.conv(tiles)
         logits = self.fc(features)
