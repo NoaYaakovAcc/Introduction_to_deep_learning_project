@@ -136,8 +136,8 @@ def main():
     
     # 6. Final Evaluation
     print("Training Complete. Evaluating Full Board Accuracy...")
-    plot.plot_list(train_losses, "Loss", "Epochs", "Training Loss over Epochs")
-    plot.plot_list(val_losses, "Loss", "Epochs", "Validation Loss over Epoch")
+    plot.plot_list(train_acc, "Loss", "Epochs", "Training Loss over Epochs")
+    plot.plot_list(val_acc, "Loss", "Epochs", "Validation Loss over Epoch")
     evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
 
 

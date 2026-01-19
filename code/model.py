@@ -56,7 +56,7 @@ class ChessNet(nn.Module):
     """
     End-to-End Network: STN -> Grid Slicing -> Classification.
     """
-    def __init__(self, num_classes=13, resolution=256):
+    def __init__(self, num_classes=13, resolution=480):
         super(ChessNet, self).__init__()
         self.stn = STN()
         self.resolution = resolution

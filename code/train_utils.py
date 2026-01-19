@@ -54,4 +54,4 @@ def validate(model, loader, criterion, device):
             correct_tiles += (preds == labels).sum().item()
             total_tiles += labels.numel()
             
-    return total_loss / len(loader), correct_tiles / total_tiles
+    return total_loss / len(loader), 1 - (correct_tiles / total_tiles)
