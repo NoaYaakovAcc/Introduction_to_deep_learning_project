@@ -7,6 +7,11 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+from model import ChessNet
+from torchvision import transforms
+from PIL import Image
+
+
 
 # Maps indices to characters
 IDX_TO_PIECE = {
@@ -162,3 +167,60 @@ def evaluate_full_board_accuracy(model, data_loader, device, folder_name="visual
     accuracy = 100.0 * correct_boards / total_boards
     print(f"\nFinal Perfect Board Accuracy: {accuracy:.2f}%")
     return accuracy
+
+
+
+# ==========================================
+# REQUIRED EVALUATION FUNCTION (From Web)
+# ==========================================
+def predict_board(image: np.ndarray) -> torch.Tensor:
+    """
+    Mandatory evaluation function.
+    Args:
+        image (np.ndarray): Input image with shape (H, W, 3), RGB, uint8.
+    Returns:
+        torch.Tensor: A (8, 8) tensor on CPU containing class indices (int64).
+    """
+    # 1. Initialize Model Architecture
+    model = ChessNet(num_classes=13)
+    MODEL_PATH = 'best_model.pth'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # 2. Load Trained Weights
+    if os.path.exists(MODEL_PATH):
+        try:
+            model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+        except Exception as e:
+            print(f"Error loading model weights: {e}")
+    else:
+        print(f"Warning: {MODEL_PATH} not found. Ensure you have trained the model first.")
+
+    # Move model to CPU and set to evaluation mode
+    model.to(device)
+    model.eval()
+
+    # 3. Preprocessing
+    transform_pipeline = transforms.Compose([
+        transforms.Resize((480, 480)),
+        transforms.ToTensor(),
+    ])
+    
+    # Convert Numpy (uint8) -> PIL Image -> Tensor
+    pil_img = Image.fromarray(image.astype('uint8')).convert('RGB')
+    img_tensor = transform_pipeline(pil_img)
+    
+    # Add batch dimension: [C, H, W] -> [1, C, H, W]
+    img_tensor = img_tensor.unsqueeze(0).to(device)
+
+    # 4. Inference
+    with torch.no_grad():
+        # Forward pass. Output shape: [1, 64, 13]
+        logits = model(img_tensor)
+        
+        # Get class predictions (argmax). Shape: [1, 64]
+        preds = torch.argmax(logits, dim=2)
+        
+        # Reshape to 8x8 grid as required by the spec
+        board_output = preds.view(8, 8)
+        
+    # 5. Return requirements: strictly CPU tensor, int64 dtype
+    return board_output.cpu().long()
