@@ -47,13 +47,14 @@ def main():
     train_games_numbers = [2,4,5,6]
     val_games_numbers = [7]
     out = 'experiments'
-    epochs = 50
+    epochs = 30
     batch = 32
     lr = 0.001
     mode_type = 1  # 0 for zero_shot, 1 for finetune
     real_percent = 0.1  # Used only in finetune mode
-    have_args = True
-
+    have_args = False
+    add_blur = False
+    add_noise = False
     #1.2 Parse command line arguments if needed
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
@@ -86,6 +87,7 @@ def main():
         train_games = []
         for game in train_games_numbers:
             train_games.append(f'game{game}_per_frame')
+        print(train_games)
         val_games = []
         for game in val_games_numbers:
             val_games.append(f'game{game}_per_frame')
@@ -103,7 +105,7 @@ def main():
     synthetic_val_samples = [s for s in all_val_samples if s.domain == 'synthetic']
     real_val_samples = [s for s in all_val_samples if s.domain == 'real']
 
-    
+
     # Logic for Training Mode
     if mode == 'zero_shot':
         # Train on Synthetic ONLY, Validate on Real
@@ -153,15 +155,16 @@ def main():
         model, train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
     
-        train_losses.append(train_loss)
-        val_losses.append(val_loss)
+        train_losses.append(train_acc)
+        val_losses.append(val_acc)
+
     
     # 6. Final Evaluation
     print("Training Complete. Evaluating Full Board Accuracy...")
-    plot.plot_list(train_acc, "Loss", "Epochs", 
+    plot.plot_list(train_losses, "Loss", "Epochs", 
                    f"Training miss rate over Epochs with real data precentage {real_percent*100}%", 
                    save_dir=folder_name)
-    plot.plot_list(val_acc, "Loss", "Epochs", 
+    plot.plot_list(val_losses, "Loss", "Epochs", 
                    f"Validation miss rate over Epochs with real data precentage {real_percent*100}%", 
                    save_dir=folder_name)
     evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
@@ -173,3 +176,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

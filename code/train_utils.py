@@ -31,7 +31,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
         total_tiles += labels.numel() # Batch * 64
         
        
-    return model, total_loss / len(loader), correct_tiles / total_tiles
+    return model, total_loss / len(loader), 1 - (correct_tiles / total_tiles)
 
 def validate(model, loader, criterion, device):
     """

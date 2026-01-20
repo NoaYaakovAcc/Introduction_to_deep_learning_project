@@ -4,8 +4,55 @@ import pandas as pd
 from PIL import Image
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms
+import matplotlib.pyplot as plt
+from torchvision.transforms import GaussianBlur
+
+def plot_noisy_image(image_path):
+    # Load and transform to tensor (C, H, W)
+    img = Image.open(image_path).convert("RGB")
+    to_tensor = transforms.ToTensor()
+    img_tensor = to_tensor(img)
+
+    # Add noise and clamp to valid range [0, 1]
+    noisy_tensor = add_blur(img_tensor, kernel_size=9, sigma=3.0)
+    noisy_tensor = add_noise(noisy_tensor, std=0.1)
+    noisy_tensor = torch.clamp(noisy_tensor, 0, 1)
+
+    # Prepare for plotting (H, W, C)
+    img_np = img_tensor.permute(1, 2, 0).numpy()
+    noisy_np = noisy_tensor.permute(1, 2, 0).numpy()
+
+    # Plot
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    axes[0].imshow(img_np)
+    axes[0].set_title("Original")
+    axes[0].axis("off")
+    
+    axes[1].imshow(noisy_np)
+    axes[1].set_title("Noisy")
+    axes[1].axis("off")
+    
+    plt.show()
 
 IMG_SIZE = (480, 480)
+
+def add_blur(tensor, kernel_size=9, sigma=3.0):
+    """
+    Applies Gaussian Blur to a tensor.
+    kernel_size must be an odd number (e.g., 5, 9).
+    Higher sigma means more blur.
+    """
+    transform = GaussianBlur(kernel_size=kernel_size, sigma=sigma)
+    return transform(tensor)
+
+def add_noise(tensor, std=0.05):
+    """
+    Adds Gaussian noise to a tensor.
+    The std parameter controls intensity.
+    """
+    return tensor + torch.randn_like(tensor) * std
+
 
 class ChessBoardSample:
     def __init__(self, img_path, fen, domain):
@@ -33,8 +80,7 @@ def scan_game(game_root, csv_path):
     # Map all image files
     all_files = glob.glob(os.path.join(game_root, "**", "*.jpg"), recursive=True)
     all_files += glob.glob(os.path.join(game_root, "**", "*.png"), recursive=True)
-    
-    img_map = {os.path.basename(f): f for f in all_files}
+
     samples = []
     
     for _, row in df.iterrows():
@@ -46,9 +92,8 @@ def scan_game(game_root, csv_path):
             filename = f"frame_{frame_num:06d}.jpg" 
         except (KeyError, ValueError):
             continue
-
-        if filename in img_map:
-            full_path = img_map[filename]
+        fen_files = [file for file in all_files if filename in file]
+        for full_path in fen_files:
             samples.append(ChessBoardSample(full_path, fen, infer_domain(full_path)))
             
     print(f"  [Scan] Found {len(samples)} valid samples in {game_root}")
@@ -113,3 +158,5 @@ class ChessBoardDataset(Dataset):
         except Exception as e:
             print(f"Error loading {s.img_path}: {e}")
             return torch.zeros(3, *IMG_SIZE), torch.zeros(64, dtype=torch.long), "error"
+        
+#plot_noisy_image(r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\data\game2_per_frame\tagged_images\frame_000200.jpg")
