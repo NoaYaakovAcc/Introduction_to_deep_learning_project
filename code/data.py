@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 
-IMG_SIZE = (256, 256)
+IMG_SIZE = (480, 480)
 
 class ChessBoardSample:
     def __init__(self, img_path, fen, domain):
