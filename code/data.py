@@ -8,6 +8,26 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 from torchvision.transforms import GaussianBlur
 
+def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
+    for images, labels in train_loader:
+        aug_images = images.clone()
+        
+        # Iterate over the Batch dimension (index 0)
+        # i represents a single photo index
+        for i in range(aug_images.shape[0]):
+            photo = aug_images[i : i+1] # Slice keeps dimension (1, C, H, W)
+            
+            # Apply modifications to this specific photo
+            if noise_flag:
+                photo = add_noise(photo)
+            if blur_flag:
+                photo = add_blur(photo)
+
+            # Update the batch
+            aug_images[i : i+1] = photo
+            
+        yield aug_images, labels
+
 def plot_noisy_image(image_path):
     # Load and transform to tensor (C, H, W)
     img = Image.open(image_path).convert("RGB")
@@ -46,7 +66,7 @@ def add_blur(tensor, kernel_size=9, sigma=3.0):
     transform = GaussianBlur(kernel_size=kernel_size, sigma=sigma)
     return transform(tensor)
 
-def add_noise(tensor, std=0.05):
+def add_noise(tensor, std=0.1):
     """
     Adds Gaussian noise to a tensor.
     The std parameter controls intensity.

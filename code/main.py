@@ -15,6 +15,7 @@ import plot # Import from your code
 from eval_utils import evaluate_full_board_accuracy
 from model import ChessNet
 from train_utils import train_one_epoch, validate
+import data
 
 
 def get_all_files_in_dirs(data_root, directory_list):
@@ -151,8 +152,13 @@ def main():
     train_losses = []
     val_losses = []
     for epoch in tqdm(range(epochs)):
+        if add_blur or add_noise:
+            new_train_loader = data.generate_augmented_batches_by_photos(add_blur, add_noise, train_loader)
+        else:
+            new_train_loader = train_loader
+
         # Using functions from train_utils.py
-        model, train_loss, train_acc = train_one_epoch(model, train_loader, optimizer, criterion, device)
+        model, train_loss, train_acc = train_one_epoch(model, new_train_loader, optimizer, criterion, device)
         val_loss, val_acc = validate(model, val_loader, criterion, device)
     
         train_losses.append(train_acc)

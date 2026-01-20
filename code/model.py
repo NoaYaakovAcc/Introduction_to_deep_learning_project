@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import torchvision.models as models
 class STN(nn.Module):
     """
     Spatial Transformer Network (STN).
@@ -56,56 +56,44 @@ class ChessNet(nn.Module):
     """
     End-to-End Network: STN -> Grid Slicing -> Classification.
     """
-    def __init__(self, num_classes=13, resolution=480):
+    def __init__(self, num_classes=13, resolution=480 ,expansion_ratio = 1.3):
         super(ChessNet, self).__init__()
         self.stn = STN()
         self.resolution = resolution
-        self.tile_size = resolution // 8
+        self.base_tile_size = resolution // 8
+
+        self.expansion_tile_size = int(self.base_tile_size * expansion_ratio)
+        self.padding_amount = (self.expansion_tile_size - self.base_tile_size) // 2
+        self.backbone = models.resnet18(pretrained=True)
+
+        self.backbone.maxpool = nn.Identity()
+
+        num_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(num_features, num_classes)
         
-        # Tile Classifier: A simple CNN that processes a single tile_size x tile_size tile.
-        self.conv = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1), 
-            nn.BatchNorm2d(32), 
-            nn.ReLU(),
-            nn.MaxPool2d(2), # tile_size -> tile_size//2
-            
-            nn.Conv2d(32, 64, 3, padding=1), 
-            nn.BatchNorm2d(64), 
-            nn.ReLU(),
-            nn.MaxPool2d(2), # tile_size//2 -> tile_size//4
-            
-            nn.Flatten()
-        )
-        
-        # Input features: 64 channels * (tile_size//4) * (tile_size//4) spatial size
-        self.fc = nn.Linear(64 * (self.tile_size // 4) * (self.tile_size // 4), num_classes)
 
     def forward(self, x):
         # 1. Apply STN to rectify the full board image
         x = self.stn(x) 
         
-        # 2. Slice the rectified image into 64 tiles using tensor operations
-        # Input x shape: [Batch, 3, resolution, resolution]
-        B, C, H, W = x.shape
-        h, w = self.tile_size, self.tile_size  # Tile size (e.g., 32 for 256x256)
         
-        # 'unfold' extracts sliding local blocks.
-        # We unfold height (dim 2) and width (dim 3).
-        tiles = x.unfold(2, h, h).unfold(3, w, w) 
-        # tiles shape: [B, C, 8, 8, h, w]
+        x_padded = F.pad(x, (self.padding_amount, self.padding_amount, self.padding_amount, self.padding_amount))
+        
+        kernel = self.expansion_tile_size
+        stride = self.base_tile_size
+        
+        tiles = x_padded.unfold(2, kernel, stride).unfold(3, kernel, stride)
         
         # Permute to put the grid dimensions (8,8) together
         tiles = tiles.permute(0, 2, 3, 1, 4, 5).contiguous()
-        # Shape: [B, 8, 8, C, h, w]
+        
         
         # Flatten the grid to treat each tile as a separate sample in the batch
         # New shape: [B * 64, C, h, w]
-        tiles = tiles.view(-1, C, h, w)
+        tiles = tiles.view(-1, 3, kernel, kernel)
         
         
-        # 3. Classify all tiles simultaneously
-        features = self.conv(tiles)
-        logits = self.fc(features)
+        logits = self.backbone(tiles)
         
         # Reshape back to [Batch, 64, NumClasses]
-        return logits.view(B, 64, 13)
+        return logits.view(x.shape[0], 64, 13)
