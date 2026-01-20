@@ -7,7 +7,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
-from PIL import Image
 from tqdm import tqdm # Import from your code
 
 # --- Import custom modules ---
@@ -17,9 +16,18 @@ from eval_utils import evaluate_full_board_accuracy
 from model import ChessNet
 from train_utils import train_one_epoch, validate
 
-# --- GLOBAL CONFIGURATION FOR INFERENCE (From Web) ---
-PREDICT_DEVICE = torch.device('cpu') 
-MODEL_PATH = 'best_model.pth'
+
+def get_all_files_in_dirs(data_root, directory_list):
+    all_samples = []
+    for dir in directory_list:
+        path = os.path.join(data_root, dir)
+        # Assuming CSV filename matches game folder name prefix (e.g., game2.csv)
+        csv_path = os.path.join(path, f"{dir.split('_')[0]}.csv")
+        print(f"Looking for data in: {path} | CSV: {csv_path}")
+        all_samples.extend(scan_game(path, csv_path))
+
+    return all_samples
+
 
 def set_seed(seed=42):
     """Sets random seed for reproducibility."""
@@ -28,59 +36,7 @@ def set_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-# ==========================================
-# REQUIRED EVALUATION FUNCTION (From Web)
-# ==========================================
-def predict_board(image: np.ndarray) -> torch.Tensor:
-    """
-    Mandatory evaluation function.
-    Args:
-        image (np.ndarray): Input image with shape (H, W, 3), RGB, uint8.
-    Returns:
-        torch.Tensor: A (8, 8) tensor on CPU containing class indices (int64).
-    """
-    # 1. Initialize Model Architecture
-    model = ChessNet(num_classes=13)
-    
-    # 2. Load Trained Weights
-    if os.path.exists(MODEL_PATH):
-        try:
-            model.load_state_dict(torch.load(MODEL_PATH, map_location=PREDICT_DEVICE))
-        except Exception as e:
-            print(f"Error loading model weights: {e}")
-    else:
-        print(f"Warning: {MODEL_PATH} not found. Ensure you have trained the model first.")
 
-    # Move model to CPU and set to evaluation mode
-    model.to(PREDICT_DEVICE)
-    model.eval()
-
-    # 3. Preprocessing
-    transform_pipeline = transforms.Compose([
-        transforms.Resize((256, 256)),
-        transforms.ToTensor(),
-    ])
-    
-    # Convert Numpy (uint8) -> PIL Image -> Tensor
-    pil_img = Image.fromarray(image.astype('uint8')).convert('RGB')
-    img_tensor = transform_pipeline(pil_img)
-    
-    # Add batch dimension: [C, H, W] -> [1, C, H, W]
-    img_tensor = img_tensor.unsqueeze(0).to(PREDICT_DEVICE)
-
-    # 4. Inference
-    with torch.no_grad():
-        # Forward pass. Output shape: [1, 64, 13]
-        logits = model(img_tensor)
-        
-        # Get class predictions (argmax). Shape: [1, 64]
-        preds = torch.argmax(logits, dim=2)
-        
-        # Reshape to 8x8 grid as required by the spec
-        board_output = preds.view(8, 8)
-        
-    # 5. Return requirements: strictly CPU tensor, int64 dtype
-    return board_output.cpu().long()
 
 # ==========================================
 # YOUR MAIN FUNCTION (From Your Code)
@@ -88,7 +44,8 @@ def predict_board(image: np.ndarray) -> torch.Tensor:
 def main():
     # 1.1 Parameters chosen for this run
     RESOLUTION = 480  # Global parameter for image resolution (X*X)
-    games_numbers = [2,4,5,6,7]
+    train_games_numbers = [2,4,5,6]
+    val_games_numbers = [7]
     out = 'experiments'
     epochs = 50
     batch = 32
@@ -101,7 +58,8 @@ def main():
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
         parser.add_argument('--data_root', type=str, required=True, help='Path to data folder')
-        parser.add_argument('--games', nargs='+', required=True, help='List of game folders')
+        parser.add_argument('--val_games', nargs='+', required=True, help='List of games for validation folders')
+        parser.add_argument('--train_games', nargs='+', required=True, help='List of games for train folders')
         parser.add_argument('--out', type=str, default='experiments', help='Output folder')
         parser.add_argument('--epochs', type=int, default=15, help='Number of training epochs')
         parser.add_argument('--batch', type=int, default=32, help='Batch size')
@@ -113,7 +71,8 @@ def main():
 
     #1.3 parameter assignment
         data_root = args.data_root
-        games = args.games
+        train_games_numbers = args.train_games
+        val_games_numbers = args.val_games
         out = args.out
         epochs = args.epochs
         batch = args.batch
@@ -124,42 +83,42 @@ def main():
     #1.4 parameter adjustments
         mode = 'finetune' if mode_type == 1 else 'zero_shot'
         data_root = r'data'
-        games = []
-        for game in games_numbers:
-            games.append(f'game{game}_per_frame')
+        train_games = []
+        for game in train_games_numbers:
+            train_games.append(f'game{game}_per_frame')
+        val_games = []
+        for game in val_games_numbers:
+            val_games.append(f'game{game}_per_frame')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Running on {device} with mode: {mode}")
     set_seed()
 
     # 2. Data Preparation
-    all_samples = []
-    for game in games:
-        game_path = os.path.join(data_root, game)
-        # Assuming CSV filename matches game folder name prefix (e.g., game2.csv)
-        csv_path = os.path.join(game_path, f"{game.split('_')[0]}.csv")
-        print(f"Looking for data in: {game_path} | CSV: {csv_path}")
-        all_samples.extend(scan_game(game_path, csv_path))
-        
+    all_train_samples = get_all_files_in_dirs(data_root, train_games)
+    all_val_samples = get_all_files_in_dirs(data_root, val_games)
     # Split by domain
-    synthetic_samples = [s for s in all_samples if s.domain == 'synthetic']
-    real_samples = [s for s in all_samples if s.domain == 'real']
+    synthetic_train_samples = [s for s in all_train_samples if s.domain == 'synthetic']
+    real_train_samples = [s for s in all_train_samples if s.domain == 'real']
+    synthetic_val_samples = [s for s in all_val_samples if s.domain == 'synthetic']
+    real_val_samples = [s for s in all_val_samples if s.domain == 'real']
+
     
     # Logic for Training Mode
     if mode == 'zero_shot':
         # Train on Synthetic ONLY, Validate on Real
-        train_samples = synthetic_samples
-        val_samples = real_samples
+        train_samples = synthetic_train_samples
+        val_samples = real_val_samples
         folder_name = "visual_results_zero_shot"
         
     elif mode == 'finetune':
         # Train on Synthetic + Small % of Real, Validate on remaining Real
-        random.shuffle(real_samples)
-        n_real_train = int(len(real_samples) * real_percent)
-        real_train = real_samples[:n_real_train]
-        real_val = real_samples[n_real_train:]
+        random.shuffle(real_train_samples)
+        n_real_train = int((real_percent * len(synthetic_train_samples))/(1-real_percent))
+        real_train = real_train_samples[:n_real_train]
+        real_val = real_val_samples
         
-        train_samples = synthetic_samples + real_train
+        train_samples = synthetic_train_samples + real_train
         val_samples = real_val
         folder_name = f"visual_results_finetune_{int(real_percent*100)}"
     
@@ -208,6 +167,7 @@ def main():
     evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
     
     # 7. Save Model Weights (CRITICAL step for predict_board to work)
+    MODEL_PATH = 'best_model.pth'
     torch.save(model.state_dict(), MODEL_PATH)
     print(f"Model weights saved successfully to {MODEL_PATH}")
 
