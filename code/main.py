@@ -45,7 +45,7 @@ def set_seed(seed=42):
 def main():
     # 1.1 Parameters chosen for this run
     RESOLUTION = 480  # Global parameter for image resolution (X*X)
-    train_games_numbers = [2,4,5,6]
+    train_games_numbers = [2,4,5]
     val_games_numbers = [7]
     out = 'experiments'
     epochs = 30
@@ -73,8 +73,8 @@ def main():
 
     #1.3 parameter assignment
         data_root = args.data_root
-        train_games_numbers = args.train_games
-        val_games_numbers = args.val_games
+        train_games = args.train_games
+        val_games = args.val_games
         out = args.out
         epochs = args.epochs
         batch = args.batch
@@ -137,8 +137,8 @@ def main():
     train_ds = ChessBoardDataset(train_samples, transform=transform)
     val_ds = ChessBoardDataset(val_samples, transform=transform)
     
-    train_loader = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=2)
+    train_loader = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=8)
+    val_loader = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=8)
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py
