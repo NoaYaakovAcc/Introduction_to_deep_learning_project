@@ -3,16 +3,23 @@ import argparse
 import random
 import torch
 import torch.nn as nn
-from tqdm import tqdm
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import numpy as np
+from PIL import Image
+from tqdm import tqdm # Import from your code
+
 # --- Import custom modules ---
 from data import scan_game, ChessBoardDataset
-import plot
+import plot # Import from your code
 from eval_utils import evaluate_full_board_accuracy
-from model import ChessNet  # Importing the STN+CNN model
-from train_utils import train_one_epoch, validate # Importing training logic
+from model import ChessNet
+from train_utils import train_one_epoch, validate
+
+# --- GLOBAL CONFIGURATION FOR INFERENCE (From Web) ---
+PREDICT_DEVICE = torch.device('cpu') 
+MODEL_PATH = 'best_model.pth'
 
 def set_seed(seed=42):
     """Sets random seed for reproducibility."""
@@ -21,6 +28,63 @@ def set_seed(seed=42):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+# ==========================================
+# REQUIRED EVALUATION FUNCTION (From Web)
+# ==========================================
+def predict_board(image: np.ndarray) -> torch.Tensor:
+    """
+    Mandatory evaluation function.
+    Args:
+        image (np.ndarray): Input image with shape (H, W, 3), RGB, uint8.
+    Returns:
+        torch.Tensor: A (8, 8) tensor on CPU containing class indices (int64).
+    """
+    # 1. Initialize Model Architecture
+    model = ChessNet(num_classes=13)
+    
+    # 2. Load Trained Weights
+    if os.path.exists(MODEL_PATH):
+        try:
+            model.load_state_dict(torch.load(MODEL_PATH, map_location=PREDICT_DEVICE))
+        except Exception as e:
+            print(f"Error loading model weights: {e}")
+    else:
+        print(f"Warning: {MODEL_PATH} not found. Ensure you have trained the model first.")
+
+    # Move model to CPU and set to evaluation mode
+    model.to(PREDICT_DEVICE)
+    model.eval()
+
+    # 3. Preprocessing
+    transform_pipeline = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+    ])
+    
+    # Convert Numpy (uint8) -> PIL Image -> Tensor
+    pil_img = Image.fromarray(image.astype('uint8')).convert('RGB')
+    img_tensor = transform_pipeline(pil_img)
+    
+    # Add batch dimension: [C, H, W] -> [1, C, H, W]
+    img_tensor = img_tensor.unsqueeze(0).to(PREDICT_DEVICE)
+
+    # 4. Inference
+    with torch.no_grad():
+        # Forward pass. Output shape: [1, 64, 13]
+        logits = model(img_tensor)
+        
+        # Get class predictions (argmax). Shape: [1, 64]
+        preds = torch.argmax(logits, dim=2)
+        
+        # Reshape to 8x8 grid as required by the spec
+        board_output = preds.view(8, 8)
+        
+    # 5. Return requirements: strictly CPU tensor, int64 dtype
+    return board_output.cpu().long()
+
+# ==========================================
+# YOUR MAIN FUNCTION (From Your Code)
+# ==========================================
 def main():
     # 1.1 Parameters chosen for this run
     RESOLUTION = 480  # Global parameter for image resolution (X*X)
@@ -32,7 +96,6 @@ def main():
     mode_type = 1  # 0 for zero_shot, 1 for finetune
     real_percent = 0.1  # Used only in finetune mode
     have_args = True
-
 
     #1.2 Parse command line arguments if needed
     if have_args:
@@ -64,7 +127,6 @@ def main():
         games = []
         for game in games_numbers:
             games.append(f'game{game}_per_frame')
-
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Running on {device} with mode: {mode}")
@@ -148,8 +210,6 @@ def main():
     # 7. Save Model Weights (CRITICAL step for predict_board to work)
     torch.save(model.state_dict(), MODEL_PATH)
     print(f"Model weights saved successfully to {MODEL_PATH}")
-
-
 
 if __name__ == '__main__':
     main()
