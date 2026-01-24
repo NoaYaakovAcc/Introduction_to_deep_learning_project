@@ -10,7 +10,7 @@ from PIL import Image
 # CRITICAL: Change for your own directory for those files, for some reason relative directory don't work
 BLENDER_EXE = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
 BLEND_FILE = r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\code\chessboard_generation\chess-set.blend"
-SCRIPT_FILE = r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\code\chessboard_generation\chess_position_api_v2.py"
+SCRIPT_FILE = r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\code\chessboard_generation\chess_position_api_v3.py"
 RESOLUTION = 2400  # Resolution defined here to use in crop calculations
 
 
