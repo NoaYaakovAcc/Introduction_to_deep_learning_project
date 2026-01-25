@@ -21,7 +21,7 @@ def create_random_fen():
 
 
 if __name__ == "__main__":    
-    num_fens = 300  # Number of random FENs to generate
+    num_fens = 30  # Number of random FENs to generate
     output_file = "random_fens.csv"
     #Creates a CSV file with random FENs and matching headers.
     with open(output_file, "w") as f:

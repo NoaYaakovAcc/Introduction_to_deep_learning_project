@@ -168,7 +168,7 @@ def generate_dataset():
 
                             crop_box = (left, top, right, bottom)
                         # --- CROP LOGIC END ---
-
+                        crop_box = tuple(map(sum, zip(crop_box, (34,34,-34,-34))))
                         cropped_img = img.crop(crop_box)
 
                         # Save directly to final path (converting to RGB for JPG)

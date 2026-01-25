@@ -45,13 +45,13 @@ def set_seed(seed=42):
 def main():
     # 1.1 Parameters chosen for this run
     RESOLUTION = 480  # Global parameter for image resolution (X*X)
-    train_games_numbers = [2,4,5]
-    val_games_numbers = [7]
+    train_games_numbers = [1]
+    val_games_numbers = [2,4,5,6,7]
     out = 'experiments'
-    epochs = 30
+    epochs = 300
     batch = 32
     lr = 0.001
-    mode_type = 1  # 0 for zero_shot, 1 for finetune
+    mode_type = 0  # 0 for zero_shot, 1 for finetune
     real_percent = 0.1  # Used only in finetune mode
     have_args = False
     add_blur = False
