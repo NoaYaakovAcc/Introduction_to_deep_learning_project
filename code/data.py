@@ -7,28 +7,56 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from torchvision.transforms import GaussianBlur
+from torch.utils.data import DataLoader, Dataset as TorchDataset  # Add this if not already imported
+
+def custom_collate(batch):
+    """
+    Custom collate function to handle batches where the third element is not a tensor.
+    """
+    imgs = torch.stack([item[0] for item in batch])
+    labels = torch.stack([item[1] for item in batch])
+    adresses = [item[2] for item in batch]  # Keep as list of strings
+    return imgs, labels, adresses
+
+class AugmentedDataset(TorchDataset):
+    def __init__(self, images, labels, adresses):
+        self.images = images
+        self.labels = labels
+        self.adresses = adresses
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        return self.images[idx], self.labels[idx], self.adresses[idx]
 
 def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
     if not blur_flag and not noise_flag:
         return train_loader
+    new_photo_list = []
+    new_labels = []
+    new_adresses = []
     for images, labels, adresses in train_loader:
-        aug_images = images.clone()
-        
-        # Iterate over the Batch dimension (index 0)
-        # i represents a single photo index
-        for i in range(aug_images.shape[0]):
-            photo = aug_images[i : i+1] # Slice keeps dimension (1, C, H, W)
+        # Iterate over each sample in the batch
+        for i in range(images.shape[0]):
+            img = images[i]  # [C, H, W] - no need for [1, ...] slice
+            label = labels[i]  # [64]
+            addr = adresses[i]  # string
             
-            # Apply modifications to this specific photo
+            # Apply augmentations
             if noise_flag:
-                photo = add_noise(photo)
+                img = add_noise(img.unsqueeze(0)).squeeze(0)  # Add noise (expects [1, C, H, W])
             if blur_flag:
-                photo = add_blur(photo)
-
-            # Update the batch
-            aug_images[i : i+1] = photo
+                img = add_blur(img.unsqueeze(0)).squeeze(0)  # Add blur (expects [1, C, H, W])
             
-        yield aug_images, labels, adresses
+            new_photo_list.append(img)
+            new_labels.append(label)
+            new_adresses.append(addr)
+    
+    # Create a Dataset from the lists
+    aug_dataset = AugmentedDataset(new_photo_list, new_labels, new_adresses)
+    # Return DataLoader with custom collate
+    return DataLoader(aug_dataset, batch_size=train_loader.batch_size, shuffle=True, num_workers=0, collate_fn=custom_collate)
 
 def plot_noisy_image(image_path):
     # Load and transform to tensor (C, H, W)
