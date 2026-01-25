@@ -64,7 +64,7 @@ class ChessNet(nn.Module):
 
         self.expansion_tile_size = int(self.base_tile_size * expansion_ratio)
         self.padding_amount = (self.expansion_tile_size - self.base_tile_size) // 2
-        resnet_version = 18
+        resnet_version = 101
         if(resnet_version is 18):
             self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         elif(resnet_version is 50):

@@ -49,15 +49,15 @@ def get_games(game_numbers):
 # ==========================================
 def main():
     # 1.1 Parameters chosen for this run
-    RESOLUTION = 480  # Global parameter for image resolution (X*X)
-    synthetic_train_samples_train_games_numbers = [1]
-    real_train_samples_train_games_numbers = [2,4,5]
-    val_games_numbers = [6,7]
+    RESOLUTION = 320  # 480/320
+    synthetic_train_samples_train_games_numbers = [0]
+    real_train_samples_train_games_numbers = [2,4,6]
+    val_games_numbers = [5,7]
 
     out = 'experiments'
-    synthetic_epochs = 20
-    real_epochs = 5
-    batch = 16
+    synthetic_epochs = 50
+    real_epochs = 2
+    batch = 4
     lr = 0.001
     have_args = False
     add_blur = False
@@ -107,20 +107,16 @@ def main():
     # Split by domain
     synthetic_train_samples = [s for s in synthetic_train_samples if s.domain == 'synthetic']
     real_train_samples = [s for s in real_train_samples if s.domain == 'real']
+    random.shuffle(real_train_samples)
+    real_train_games = real_train_samples#[:len(synthetic_train_samples)]
     synthetic_val_samples = [s for s in all_val_samples if s.domain == 'synthetic']
     real_val_samples = [s for s in all_val_samples if s.domain == 'real']
 
     # Logic for Training Mode
-    if real_epochs != 0:
+    if real_epochs == 0:
         folder_name = "visual_results_zero_shot"
         
-    elif mode == 'finetune':
-        # Train on Synthetic + Small % of Real, Validate on remaining Real
-        #real_train = real_train_samples[:n_real_train]
-        #real_val = real_val_samples
-        
-        #train_samples = synthetic_train_samples + real_train
-        #val_samples = real_val
+    else:
         folder_name = f"visual_results_finetune_with{int(real_epochs)}_epochs"
     
     print(f"Syntetic training set size: {len(synthetic_train_samples)}")
@@ -134,18 +130,16 @@ def main():
     ])
     
     synthetic_train_ds = ChessBoardDataset(synthetic_train_samples, transform=transform)
-    real_train_ds = ChessBoardDataset(real_train_samples, transform=transform)
     real_val_ds = ChessBoardDataset(real_val_samples, transform=transform)
     
     synthetic_train_loader = DataLoader(synthetic_train_ds, batch_size=batch, shuffle=True, num_workers=4)
-    real_train_loader = DataLoader(real_train_ds, batch_size=batch, shuffle=True, num_workers=4)
     val_loader = DataLoader(real_val_ds, batch_size=batch, shuffle=True, num_workers=4)
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py
     model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
     
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     
     # 5. Training Loop
@@ -155,7 +149,11 @@ def main():
     max_val_acc = 0.0
     for epoch in tqdm(range(synthetic_epochs + real_epochs)):
         if(epoch >= synthetic_epochs):
-            new_train_loader = real_train_loader
+            if(epoch == synthetic_epochs):
+                del synthetic_train_loader
+                torch.cuda.empty_cache()
+                real_train_ds = ChessBoardDataset(real_train_samples, transform=transform)
+                new_train_loader = DataLoader(real_train_ds, batch_size=batch, shuffle=True, num_workers=4)
         elif add_blur or add_noise:
             new_train_loader = data.generate_augmented_batches_by_photo(add_blur, add_noise, synthetic_train_loader)
         else:
