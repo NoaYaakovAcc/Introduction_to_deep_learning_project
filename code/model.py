@@ -64,8 +64,13 @@ class ChessNet(nn.Module):
 
         self.expansion_tile_size = int(self.base_tile_size * expansion_ratio)
         self.padding_amount = (self.expansion_tile_size - self.base_tile_size) // 2
-        self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-
+        resnet_version = 18
+        if(resnet_version is 18):
+            self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        elif(resnet_version is 50):
+            self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        elif(resnet_version is 101):
+            self.backbone = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
         self.backbone.maxpool = nn.Identity()
 
         num_features = self.backbone.fc.in_features
