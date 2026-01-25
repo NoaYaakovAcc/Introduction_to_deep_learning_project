@@ -48,8 +48,8 @@ def main():
     train_games_numbers = [1]
     val_games_numbers = [2,4,5,6,7]
     out = 'experiments'
-    epochs = 300
-    batch = 32
+    epochs = 30
+    batch = 16
     lr = 0.001
     mode_type = 0  # 0 for zero_shot, 1 for finetune
     real_percent = 0.1  # Used only in finetune mode
@@ -137,8 +137,8 @@ def main():
     train_ds = ChessBoardDataset(train_samples, transform=transform)
     val_ds = ChessBoardDataset(val_samples, transform=transform)
     
-    train_loader = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=8)
+    train_loader = DataLoader(train_ds, batch_size=batch, shuffle=True, num_workers=4)
+    val_loader = DataLoader(val_ds, batch_size=batch, shuffle=False, num_workers=4)
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py

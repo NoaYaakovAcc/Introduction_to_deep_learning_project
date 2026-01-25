@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import GaussianBlur
 
 def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
-    for images, labels in train_loader:
+    if not blur_flag and not noise_flag:
+        return train_loader
+    for images, labels, adresses in train_loader:
         aug_images = images.clone()
         
         # Iterate over the Batch dimension (index 0)
@@ -26,7 +28,7 @@ def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
             # Update the batch
             aug_images[i : i+1] = photo
             
-        yield aug_images, labels
+        yield aug_images, labels, adresses
 
 def plot_noisy_image(image_path):
     # Load and transform to tensor (C, H, W)
