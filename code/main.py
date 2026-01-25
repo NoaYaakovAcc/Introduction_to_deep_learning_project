@@ -139,7 +139,7 @@ def main():
     # Using the custom ChessNet from model.py
     model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
     
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     
     # 5. Training Loop

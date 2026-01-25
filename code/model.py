@@ -74,7 +74,10 @@ class ChessNet(nn.Module):
         self.backbone.maxpool = nn.Identity()
 
         num_features = self.backbone.fc.in_features
-        self.backbone.fc = nn.Linear(num_features, num_classes)
+        #self.backbone.fc = nn.Linear(num_features, num_classes)
+        '''try separation of clusters technique'''
+        self.backbone.fc = nn.Identity()  # Backbone now returns features
+        self.classifier = nn.Linear(num_features, num_classes)
         
 
     def forward(self, x):
@@ -97,8 +100,11 @@ class ChessNet(nn.Module):
         # New shape: [B * 64, C, h, w]
         tiles = tiles.view(-1, 3, kernel, kernel)
         
-        
-        logits = self.backbone(tiles)
-        
+        '''try separation of clusters technique'''
+        #logits = self.backbone(tiles)
+        tiles_flat = tiles.view(-1, 3, kernel, kernel)
+        features = self.backbone(tiles_flat)
+        logits = self.classifier(features)
+        return logits.view(x.shape[0], 64, 13), features
         # Reshape back to [Batch, 64, NumClasses]
         return logits.view(x.shape[0], 64, 13)
