@@ -10,7 +10,7 @@ import numpy as np
 from model import ChessNet
 from torchvision import transforms
 from PIL import Image
-
+from plot import plot_confusion_matrix
 
 
 # Maps indices to characters
@@ -119,7 +119,7 @@ def evaluate_full_board_accuracy(model, data_loader, device, folder_name="visual
     model.eval()
     correct_boards = 0
     total_boards = 0
-    
+    confusion_matrix = torch.zeros(13, 13, dtype=torch.long)
     # Create the specific folder passed from main
     os.makedirs(folder_name, exist_ok=True)
     
@@ -141,7 +141,17 @@ def evaluate_full_board_accuracy(model, data_loader, device, folder_name="visual
             board_matches = (preds == labels).all(dim=1)
             correct_boards += board_matches.sum().item()
             total_boards += labels.size(0)
-            
+
+            # Update confusion matrix
+            flat_preds = preds.view(-1).cpu()
+            flat_labels = labels.view(-1).cpu()
+            for t, p in zip(flat_labels, flat_preds):
+                confusion_matrix[t, p] += 1
+
+            board_matches = (preds == labels).all(dim=1)
+            correct_boards += board_matches.sum().item()
+            total_boards += labels.size(0)
+
             if batch_idx == 0:
                 num_to_save = min(10, labels.size(0))
                 print(f"Saving {num_to_save} visualization images...")
@@ -164,6 +174,7 @@ def evaluate_full_board_accuracy(model, data_loader, device, folder_name="visual
                     status = "✅" if board_matches[i].item() else f"⚠️ {board_acc:.1f}%"
                     print(f"Sample {i} [{status}]: {clean_title}")
 
+    plot_confusion_matrix(confusion_matrix, folder_name)
     accuracy = 100.0 * correct_boards / total_boards
     print(f"\nFinal Perfect Board Accuracy: {accuracy:.2f}%")
     return accuracy
