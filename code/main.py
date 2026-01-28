@@ -49,19 +49,20 @@ def get_games(game_numbers):
 # ==========================================
 def main():
     # 1.1 Parameters chosen for this run
-    RESOLUTION = 320  # 480/320
-    synthetic_train_samples_train_games_numbers = [0]
+    RESOLUTION = 480  # 480/320
+    synthetic_train_samples_train_games_numbers = [1]
     real_train_samples_train_games_numbers = [2,4,6]
     val_games_numbers = [5,7]
 
     out = 'experiments'
-    synthetic_epochs = 50
-    real_epochs = 2
-    batch = 4
+    synthetic_epochs = 500
+    real_epochs = 0
+    batch = 16
     lr = 0.001
     have_args = False
     add_blur = False
-    add_noise = False
+    add_noise = True
+    folder_name = '500_epoch_SGD_syntetic_only' # If None, will be set based on real_epochs
     #1.2 Parse command line arguments if needed
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
@@ -113,10 +114,10 @@ def main():
     real_val_samples = [s for s in all_val_samples if s.domain == 'real']
 
     # Logic for Training Mode
-    if real_epochs == 0:
+    if real_epochs == 0 and folder_name is None:
         folder_name = "visual_results_zero_shot"
         
-    else:
+    elif folder_name is None:
         folder_name = f"visual_results_finetune_with{int(real_epochs)}_epochs"
     
     print(f"Syntetic training set size: {len(synthetic_train_samples)}")
@@ -148,12 +149,15 @@ def main():
     val_losses = []
     max_val_acc = 0.0
     for epoch in tqdm(range(synthetic_epochs + real_epochs)):
+        if(epoch == synthetic_epochs/2):
+            optimizer.param_groups[0]['lr'] = lr / 10
         if(epoch >= synthetic_epochs):
             if(epoch == synthetic_epochs):
                 del synthetic_train_loader
                 torch.cuda.empty_cache()
                 real_train_ds = ChessBoardDataset(real_train_samples, transform=transform)
                 new_train_loader = DataLoader(real_train_ds, batch_size=batch, shuffle=True, num_workers=4)
+                optimizer.param_groups[0]['lr'] = lr*10
         elif add_blur or add_noise:
             new_train_loader = data.generate_augmented_batches_by_photo(add_blur, add_noise, synthetic_train_loader)
         else:
