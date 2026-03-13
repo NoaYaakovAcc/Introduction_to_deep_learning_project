@@ -49,20 +49,20 @@ def get_games(game_numbers):
 # ==========================================
 def main():
     # 1.1 Parameters chosen for this run
-    RESOLUTION = 480  # 480/320
+    RESOLUTION = 320  # 480/320
     synthetic_train_samples_train_games_numbers = [1]
     real_train_samples_train_games_numbers = [2,4,6]
     val_games_numbers = [5,7]
 
     out = 'experiments'
-    synthetic_epochs = 500
+    synthetic_epochs = 1000
     real_epochs = 0
-    batch = 16
-    lr = 0.001
+    batch = 8
+    lr = 0.01
     have_args = False
     add_blur = False
     add_noise = True
-    folder_name = '500_epoch_SGD_syntetic_only' # If None, will be set based on real_epochs
+    folder_name = '1000_epoch_SGD_no_real_resnet50' # If None, will be set based on real_epochs
     #1.2 Parse command line arguments if needed
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
@@ -141,7 +141,10 @@ def main():
     model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
     
     optimizer = optim.SGD(model.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
+    class_weights = torch.ones(13)
+    class_weights[3] = 0.7
+    class_weights = class_weights.to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     
     # 5. Training Loop
     print("Starting training...")
@@ -149,7 +152,7 @@ def main():
     val_losses = []
     max_val_acc = 0.0
     for epoch in tqdm(range(synthetic_epochs + real_epochs)):
-        if(epoch == synthetic_epochs/2):
+        if(epoch == synthetic_epochs/3 or epoch == 2*synthetic_epochs/3):
             optimizer.param_groups[0]['lr'] = lr / 10
         if(epoch >= synthetic_epochs):
             if(epoch == synthetic_epochs):
@@ -186,7 +189,7 @@ def main():
     evaluate_full_board_accuracy(model, val_loader, device, folder_name=folder_name)
     
     # 7. Save Model Weights (CRITICAL step for predict_board to work)
-    MODEL_PATH = 'best_model.pth'
+    MODEL_PATH = folder_name + '/best_model.pth'
     torch.save(model.state_dict(), MODEL_PATH)
     print(f"Model weights saved successfully to {MODEL_PATH}")
 
