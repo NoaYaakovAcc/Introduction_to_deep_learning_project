@@ -38,11 +38,17 @@ def plot_list(data: list[float], text1: str, text2: str, headline: str, save_dir
         plt.close()
         return None
 
-def plot_confusion_matrix(cm_tensor, folder_name):
+def plot_confusion_matrix(cm_tensor, folder_name, overall_acc_all: float = None, overall_acc_nonempty: float = None):
     """
     Plots and saves a normalized confusion matrix (percentage table).
     X-axis: Predicted
     Y-axis: True
+
+    Args:
+        cm_tensor: Confusion matrix with shape (13, 13).
+        folder_name: Output folder to save the plot.
+        overall_acc_all: Overall accuracy including empty squares (label 12).
+        overall_acc_nonempty: Overall accuracy excluding empty squares.
     """
     # 1. Normalize by Row (True Label) to get percentages
     # Add epsilon to avoid division by zero for missing classes
@@ -83,9 +89,19 @@ def plot_confusion_matrix(cm_tensor, folder_name):
             ax.text(j, i, f"{val:.1f}", ha="center", va="center", 
                     color=text_color, fontsize=9)
 
-    plt.tight_layout()
-    
-    # 5. Save
+    # 5. Add overall accuracy stats below the matrix (if provided)
+    if overall_acc_all is not None and overall_acc_nonempty is not None:
+        summary_text = (
+            f"Overall accuracy (all squares): {overall_acc_all:.2f}%   |   "
+            f"Overall accuracy (non-empty squares): {overall_acc_nonempty:.2f}%"
+        )
+        # Leave space at the bottom for the text
+        plt.tight_layout(rect=[0, 0.06, 1, 1])
+        fig.text(0.5, 0.02, summary_text, ha="center", fontsize=11)
+    else:
+        plt.tight_layout()
+
+    # 6. Save
     save_path = os.path.join(folder_name, "confusion_matrix.png")
     plt.savefig(save_path)
     plt.close(fig)

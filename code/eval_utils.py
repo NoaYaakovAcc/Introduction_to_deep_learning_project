@@ -174,7 +174,18 @@ def evaluate_full_board_accuracy(model, data_loader, device, folder_name="visual
                     status = "✅" if board_matches[i].item() else f"⚠️ {board_acc:.1f}%"
                     print(f"Sample {i} [{status}]: {clean_title}")
 
-    plot_confusion_matrix(confusion_matrix, folder_name)
+    # Calculate summary statistics for the confusion matrix
+    total_tiles = confusion_matrix.sum().item()
+    correct_all = torch.trace(confusion_matrix).item()
+    overall_acc_all = 100.0 * correct_all / total_tiles if total_tiles > 0 else 0.0
+
+    non_empty_conf = confusion_matrix[:12, :]
+    non_empty_total = non_empty_conf.sum().item()
+    non_empty_correct = torch.trace(non_empty_conf).item()
+    overall_acc_nonempty = 100.0 * non_empty_correct / non_empty_total if non_empty_total > 0 else 0.0
+
+    plot_confusion_matrix(confusion_matrix, folder_name, overall_acc_all, overall_acc_nonempty)
+
     accuracy = 100.0 * correct_boards / total_boards
     print(f"\nFinal Perfect Board Accuracy: {accuracy:.2f}%")
     return accuracy
