@@ -10,7 +10,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
     total_loss = 0.0
     correct_tiles = 0
     total_tiles = 0
-    for imgs, labels, adresses in loader:
+    for imgs, labels, _ in loader:
         imgs, labels = imgs.to(device), labels.to(device)
         
         optimizer.zero_grad()
@@ -43,7 +43,7 @@ def validate(model, loader, criterion, device):
     total_tiles = 0
     
     with torch.no_grad():
-        for imgs, labels, adresses in loader:
+        for imgs, labels, _ in loader:
             imgs, labels = imgs.to(device), labels.to(device)
             output = model(imgs)
             

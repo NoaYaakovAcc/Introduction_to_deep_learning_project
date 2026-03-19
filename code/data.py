@@ -28,7 +28,7 @@ class AugmentedDataset(TorchDataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        return self.images[idx], self.labels[idx], self.adresses[idx]
+        return self.images[idx], self.labels[idx], self.addresses[idx]
 
 def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
     if not blur_flag and not noise_flag:

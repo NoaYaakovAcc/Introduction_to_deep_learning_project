@@ -57,15 +57,14 @@ class ChessNet(nn.Module):
     """
     End-to-End Network: STN -> Grid Slicing -> Classification.
     """
-    def __init__(self, num_classes=13, resolution=480 ,expansion_ratio = 1.3):
+    def __init__(self, num_classes=13, resolution=480 ,expansion_ratio = 1.3, resnet_version=18):
         super(ChessNet, self).__init__()
-        self.stn = STN()
+        #self.stn = STN()
         self.resolution = resolution
         self.base_tile_size = resolution // 8
 
         self.expansion_tile_size = int(self.base_tile_size * expansion_ratio)
         self.padding_amount = (self.expansion_tile_size - self.base_tile_size) // 2
-        resnet_version = 50
         if(resnet_version is 18):
             self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         elif(resnet_version is 50):
@@ -81,7 +80,7 @@ class ChessNet(nn.Module):
 
     def forward(self, x):
         # 1. Apply STN to rectify the full board image
-        x = self.stn(x) 
+        #x = self.stn(x) 
         
         
         x_padded = F.pad(x, (self.padding_amount, self.padding_amount, self.padding_amount, self.padding_amount))

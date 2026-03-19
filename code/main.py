@@ -55,14 +55,15 @@ def main():
     val_games_numbers = [5,7]
 
     out = 'experiments'
-    synthetic_epochs = 1000
-    real_epochs = 0
+    synthetic_epochs = 2000
+    real_epochs = 20
     batch = 8
     lr = 0.01
     have_args = False
     add_blur = False
     add_noise = True
-    folder_name = '1000_epoch_SGD_no_real_resnet50' # If None, will be set based on real_epochs
+    resnet_version = 18
+    folder_name = '2000_epoch_SGD_20_real_resnet18_noSTN_NoBishop07' # If None, will be set based on real_epochs
     #1.2 Parse command line arguments if needed
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
@@ -138,11 +139,10 @@ def main():
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py
-    model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
+    model = ChessNet(num_classes=13, resolution=RESOLUTION, resnet_version=resnet_version).to(device)
     
     optimizer = optim.SGD(model.parameters(), lr=lr)
     class_weights = torch.ones(13)
-    class_weights[3] = 0.7 #remember to make a point in the report with examples.
     class_weights = class_weights.to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     
@@ -156,6 +156,7 @@ def main():
             optimizer.param_groups[0]['lr'] = lr / 10
         if(epoch >= synthetic_epochs):
             if(epoch == synthetic_epochs):
+                print(f"Best Validation Miss Rate: {max_val_acc*100:.2f}%")    
                 evaluate_full_board_accuracy(model, val_loader, device, folder_name=(folder_name+"/zero_shot")) # Evaluate before fine-tuning on real data
                 MODEL_PATH = folder_name + '/zero_shot' + '/best_model.pth'
                 torch.save(model.state_dict(), MODEL_PATH)
