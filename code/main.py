@@ -133,7 +133,7 @@ def main():
     synthetic_train_ds = ChessBoardDataset(synthetic_train_samples, transform=transform)
     real_val_ds = ChessBoardDataset(real_val_samples, transform=transform)
     
-    synthetic_train_loader = DataLoader(synthetic_train_ds, batch_size=batch, shuffle=True, num_workers=4)
+    synthetic_train_loader = DataLoader(synthetic_train_ds, batch_size=batch, shuffle=True, num_workers=4) # ask for a less expensive way
     val_loader = DataLoader(real_val_ds, batch_size=batch, shuffle=True, num_workers=4)
     
     # 4. Model Initialization
@@ -142,7 +142,7 @@ def main():
     
     optimizer = optim.SGD(model.parameters(), lr=lr)
     class_weights = torch.ones(13)
-    class_weights[3] = 0.7
+    class_weights[3] = 0.7 #remember to make a point in the report with examples.
     class_weights = class_weights.to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     

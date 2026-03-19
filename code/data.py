@@ -19,10 +19,10 @@ def custom_collate(batch):
     return imgs, labels, adresses
 
 class AugmentedDataset(TorchDataset):
-    def __init__(self, images, labels, adresses):
+    def __init__(self, images, labels, addresses):
         self.images = images
         self.labels = labels
-        self.adresses = adresses
+        self.addresses = addresses
 
     def __len__(self):
         return len(self.images)
@@ -38,16 +38,17 @@ def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
     new_adresses = []
     for images, labels, adresses in train_loader:
         # Iterate over each sample in the batch
-        for i in range(images.shape[0]):
+
+        for i in range(images.shape[0]): # check option to do this all together and not each pic 
             img = images[i]  # [C, H, W] - no need for [1, ...] slice
             label = labels[i]  # [64]
             addr = adresses[i]  # string
             
             # Apply augmentations
             if noise_flag:
-                img = add_noise(img.unsqueeze(0)).squeeze(0)  # Add noise (expects [1, C, H, W])
+                img = add_noise(img.unsqueeze(0)).squeeze(0)  # Add noise (expects [1, C, H, W]) #r
             if blur_flag:
-                img = add_blur(img.unsqueeze(0)).squeeze(0)  # Add blur (expects [1, C, H, W])
+                img = add_blur(img.unsqueeze(0)).squeeze(0)  # Add blur (expects [1, C, H, W]) #delete blur
             
             new_photo_list.append(img)
             new_labels.append(label)
@@ -58,7 +59,7 @@ def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
     # Return DataLoader with custom collate
     return DataLoader(aug_dataset, batch_size=train_loader.batch_size, shuffle=True, num_workers=0, collate_fn=custom_collate)
 
-def plot_noisy_image(image_path):
+def plot_noisy_image(image_path): # do we need to have it in the subbmision 
     # Load and transform to tensor (C, H, W)
     img = Image.open(image_path).convert("RGB")
     to_tensor = transforms.ToTensor()
@@ -85,7 +86,7 @@ def plot_noisy_image(image_path):
     
     plt.show()
 
-IMG_SIZE = (480, 480)
+IMG_SIZE = (480, 480) # make global and 320
 
 def add_blur(tensor, kernel_size=9, sigma=3.0):
     """
@@ -101,7 +102,7 @@ def add_noise(tensor, std=0.1):
     Adds Gaussian noise to a tensor.
     The std parameter controls intensity.
     """
-    return tensor + torch.randn_like(tensor) * std
+    return tensor + torch.randn_like(tensor) * std # add clamp
 
 
 class ChessBoardSample:
@@ -181,7 +182,7 @@ class ChessBoardDataset(Dataset):
         for r in rows:
             for c in r:
                 if c.isdigit():
-                    labels.extend([12] * int(c)) 
+                    labels.extend([12] * int(c)) #my bad opseee
                 else:
                     labels.append(self.piece_map.get(c, 12)) 
         
