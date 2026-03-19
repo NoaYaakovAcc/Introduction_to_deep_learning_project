@@ -156,6 +156,9 @@ def main():
             optimizer.param_groups[0]['lr'] = lr / 10
         if(epoch >= synthetic_epochs):
             if(epoch == synthetic_epochs):
+                evaluate_full_board_accuracy(model, val_loader, device, folder_name=(folder_name+"/zero_shot")) # Evaluate before fine-tuning on real data
+                MODEL_PATH = folder_name + '/zero_shot' + '/best_model.pth'
+                torch.save(model.state_dict(), MODEL_PATH)
                 del synthetic_train_loader
                 torch.cuda.empty_cache()
                 real_train_ds = ChessBoardDataset(real_train_samples, transform=transform)
@@ -171,6 +174,8 @@ def main():
         val_loss, val_acc = validate(model, val_loader, criterion, device)
         if(1 - val_acc) > max_val_acc:
             best_model_wts = model.state_dict()
+            if epoch <= synthetic_epochs:
+                best_zero_shot_wts = model.state_dict()
             max_val_acc = 1 - val_acc
         train_losses.append(train_acc)
         val_losses.append(val_acc)
@@ -180,6 +185,8 @@ def main():
     #model.load_state_dict(best_model_wts) # Load best model weights from each train epoch
     print(f"Best Validation Miss Rate: {max_val_acc*100:.2f}%")
     print("Training Complete. Evaluating Full Board Accuracy...")
+    if real_epochs > 0:
+        folder_name = folder_name + "/fine_tune"
     plot.plot_list(train_losses, "Loss", "Epochs", 
                    f"Training miss rate over Epochs with {real_epochs} real data epochs%", 
                    save_dir=folder_name)
