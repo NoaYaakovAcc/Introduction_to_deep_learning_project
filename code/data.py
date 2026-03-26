@@ -3,117 +3,104 @@ import glob
 import pandas as pd
 from PIL import Image
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-import matplotlib.pyplot as plt
 from torchvision.transforms import GaussianBlur
-from torch.utils.data import DataLoader, Dataset as TorchDataset  # Add this if not already imported
+import matplotlib.pyplot as plt
 
-def custom_collate(batch):
-    """
-    Custom collate function to handle batches where the third element is not a tensor.
-    """
-    imgs = torch.stack([item[0] for item in batch])
-    labels = torch.stack([item[1] for item in batch])
-    adresses = [item[2] for item in batch]  # Keep as list of strings
-    return imgs, labels, adresses
 
-class AugmentedDataset(TorchDataset):
-    def __init__(self, images, labels, addresses):
+
+IMG_SIZE = (480, 480)
+
+
+def collate_with_paths(batch):
+    images = torch.stack([sample[0] for sample in batch])
+    labels = torch.stack([sample[1] for sample in batch])
+    image_paths = [sample[2] for sample in batch]
+    return images, labels, image_paths
+
+class AugmentedDataset(Dataset):
+    def __init__(self, images, labels, image_paths):
         self.images = images
         self.labels = labels
-        self.addresses = addresses
+        self.image_paths = image_paths
 
     def __len__(self):
         return len(self.images)
 
-    def __getitem__(self, idx):
-        return self.images[idx], self.labels[idx], self.addresses[idx]
+    def __getitem__(self, index):
+        return self.images[idx], self.labels[idx], self.image_paths[index]
 
-def generate_augmented_batches_by_photo(blur_flag, noise_flag, train_loader):
-    if not blur_flag and not noise_flag:
+def build_augmented_batches_loader(use_noise, train_loader):
+    if not use_noise:
         return train_loader
-    new_photo_list = []
-    new_labels = []
-    new_adresses = []
-    for images, labels, adresses in train_loader:
-        # Iterate over each sample in the batch
-
-        for i in range(images.shape[0]): # check option to do this all together and not each pic 
-            img = images[i]  # [C, H, W] - no need for [1, ...] slice
-            label = labels[i]  # [64]
-            addr = adresses[i]  # string
-            
-            # Apply augmentations
-            if noise_flag:
-                img = add_noise(img.unsqueeze(0)).squeeze(0)  # Add noise (expects [1, C, H, W]) #r
-            if blur_flag:
-                img = add_blur(img.unsqueeze(0)).squeeze(0)  # Add blur (expects [1, C, H, W]) #delete blur
-            
-            new_photo_list.append(img)
-            new_labels.append(label)
-            new_adresses.append(addr)
     
-    # Create a Dataset from the lists
-    aug_dataset = AugmentedDataset(new_photo_list, new_labels, new_adresses)
-    # Return DataLoader with custom collate
-    return DataLoader(aug_dataset, batch_size=train_loader.batch_size, shuffle=True, num_workers=0, collate_fn=custom_collate)
+    augmented_images = []
+    augmented_labels = []
+    augmented_paths = []
+
+    for batch_images, batch_labels, batch_paths in train_loader:
+        if use_noise:
+            batch_images = add_noise(batch_images)
+
+        for i in range(batch_images.shape[0]):
+            augmented_images.append(batch_images[i])
+            augmented_labels.append(batch_labels[i])
+            augmented_paths.append(batch_paths[i])
+
+    augmented_dataset = AugmentedDataset(
+        augmented_images,
+        augmented_labels,
+        augmented_paths)
+
+    return DataLoader(
+        augmented_dataset,
+        batch_size=train_loader.batch_size,
+        shuffle=True,
+        num_workers=0,
+        collate_fn=collate_with_paths
+)
 
 def plot_noisy_image(image_path): # do we need to have it in the subbmision 
-    # Load and transform to tensor (C, H, W)
-    img = Image.open(image_path).convert("RGB")
+    image = Image.open(image_path).convert("RGB")
     to_tensor = transforms.ToTensor()
-    img_tensor = to_tensor(img)
+    image_tensor = to_tensor(image)
 
-    # Add noise and clamp to valid range [0, 1]
-    noisy_tensor = add_blur(img_tensor, kernel_size=9, sigma=3.0)
-    noisy_tensor = add_noise(noisy_tensor, std=0.1)
-    noisy_tensor = torch.clamp(noisy_tensor, 0, 1)
+    noisy_tensor = add_noise(image_tensor.unsqueeze(0)).squeeze(0)
 
-    # Prepare for plotting (H, W, C)
-    img_np = img_tensor.permute(1, 2, 0).numpy()
-    noisy_np = noisy_tensor.permute(1, 2, 0).numpy()
+    original_image = image_tensor.permute(1, 2, 0).numpy()
+    noisy_image = noisy_tensor.permute(1, 2, 0).numpy()
 
-    # Plot
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].imshow(img_np)
+
+    axes[0].imshow(original_image)
     axes[0].set_title("Original")
     axes[0].axis("off")
-    
-    axes[1].imshow(noisy_np)
+
+    axes[1].imshow(noisy_image)
     axes[1].set_title("Noisy")
     axes[1].axis("off")
-    
+
     plt.show()
 
-IMG_SIZE = (480, 480) # make global and 320
-
-def add_blur(tensor, kernel_size=9, sigma=3.0):
-    """
-    Applies Gaussian Blur to a tensor.
-    kernel_size must be an odd number (e.g., 5, 9).
-    Higher sigma means more blur.
-    """
-    transform = GaussianBlur(kernel_size=kernel_size, sigma=sigma)
-    return transform(tensor)
-
-def add_noise(tensor, std=0.1):
+def add_noise(images, std=0.1):
     """
     Adds Gaussian noise to a tensor.
     The std parameter controls intensity.
     """
-    return tensor + torch.randn_like(tensor) * std # add clamp
+    noisy_images = images + torch.randn_like(images) * std
+    return torch.clamp(noisy_images, 0, 1)
 
 
 class ChessBoardSample:
-    def __init__(self, img_path, fen, domain):
-        self.img_path = img_path
+    def __init__(self, image_path, fen, domain):
+        self.image_path = image_path
         self.fen = fen
         self.domain = domain
 
-def infer_domain(path):
+def infer_domain(image_path):
     # Determines if image is synthetic based on folder name
-    return "synthetic" if "generated" in path.lower() else "real"
+    return "synthetic" if "generated" in image_path.lower() else "real"
 
 def scan_game(game_root, csv_path):
     if not os.path.exists(csv_path):
@@ -129,8 +116,8 @@ def scan_game(game_root, csv_path):
         return []
 
     # Map all image files
-    all_files = glob.glob(os.path.join(game_root, "**", "*.jpg"), recursive=True)
-    all_files += glob.glob(os.path.join(game_root, "**", "*.png"), recursive=True)
+    all_image_files = glob.glob(os.path.join(game_root, "**", "*.jpg"), recursive=True)
+    all_image_files += glob.glob(os.path.join(game_root, "**", "*.png"), recursive=True)
 
     samples = []
     
@@ -143,9 +130,17 @@ def scan_game(game_root, csv_path):
             filename = f"frame_{frame_num:06d}.jpg" 
         except (KeyError, ValueError):
             continue
-        fen_files = [file for file in all_files if filename in file]
-        for full_path in fen_files:
-            samples.append(ChessBoardSample(full_path, fen, infer_domain(full_path)))
+        
+        matching_files = [file_path for file_path in all_image_files if file_name in file_path]
+
+        for full_path in matching_files:
+            samples.append(
+                ChessBoardSample(
+                    full_path,
+                    fen,
+                    infer_domain(full_path)
+                )
+            )
             
     print(f"  [Scan] Found {len(samples)} valid samples in {game_root}")
     return samples
@@ -179,12 +174,13 @@ class ChessBoardDataset(Dataset):
         board_str = fen.split()[0]
         rows = board_str.split('/')
         labels = []
-        for r in rows:
-            for c in r:
-                if c.isdigit():
-                    labels.extend([12] * int(c)) #my bad opseee
+
+        for row in rows:
+            for char in row:
+                if char.isdigit():
+                    labels.extend([12] * int(char))
                 else:
-                    labels.append(self.piece_map.get(c, 12)) 
+                    labels.append(self.piece_to_index.get(char, 12))
         
         # Ensure length is 64
         if len(labels) != 64:
@@ -195,19 +191,23 @@ class ChessBoardDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def __getitem__(self, idx):
-        s = self.samples[idx]
+    def __getitem__(self, index):
+        sample = self.samples[index]
         try:
-            img = Image.open(s.img_path).convert('RGB')
-            labels = self.parse_fen(s.fen)
-            
-            if self.transform:
-                img = self.transform(img)
-            
-            # Return image, label, AND path (for visualization)
-            return img, labels, s.img_path
-        except Exception as e:
-            print(f"Error loading {s.img_path}: {e}")
-            return torch.zeros(3, *IMG_SIZE), torch.zeros(64, dtype=torch.long), "error"
+            image = Image.open(sample.image_path).convert("RGB")
+            labels = self.parse_fen(sample.fen)
+
+            if self.transform is not None:
+                image = self.transform(image)
+
+            return image, labels, sample.image_path
+
+        except Exception as error:
+            print(f"Error loading {sample.image_path}: {error}")
+            return (
+                torch.zeros(3, *IMG_SIZE),
+                torch.zeros(64, dtype=torch.long),
+                "error"
+            )
         
 #plot_noisy_image(r"C:\Users\yoavl\Documents\github\Introduction_to_deep_learning_project\data\game2_per_frame\tagged_images\frame_000200.jpg")
