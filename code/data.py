@@ -31,17 +31,14 @@ class AugmentedDataset(Dataset):
     def __getitem__(self, index):
         return self.images[index], self.labels[index], self.image_paths[index]
 
-def build_augmented_batches_loader(use_noise, train_loader):
-    if not use_noise:
-        return train_loader
-    
+def build_augmented_batches_loader(train_loader):
+
     augmented_images = []
     augmented_labels = []
     augmented_paths = []
 
     for batch_images, batch_labels, batch_paths in train_loader:
-        if use_noise:
-            batch_images = add_noise(batch_images)
+        batch_images = add_noise(batch_images)
 
         for i in range(batch_images.shape[0]):
             augmented_images.append(batch_images[i])
