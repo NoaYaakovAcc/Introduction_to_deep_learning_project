@@ -29,7 +29,7 @@ class AugmentedDataset(Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
-        return self.images[idx], self.labels[idx], self.image_paths[index]
+        return self.images[index], self.labels[index], self.image_paths[index]
 
 def build_augmented_batches_loader(use_noise, train_loader):
     if not use_noise:
