@@ -13,7 +13,7 @@ from tqdm import tqdm # Import from your code
 from data import scan_game, ChessBoardDataset
 import plot # Import from your code
 from eval_utils import evaluate_full_board_accuracy
-from model import ChessNet
+from model2 import ChessNet
 from train_utils import train_one_epoch, validate
 import data
 
@@ -55,7 +55,7 @@ def main():
     val_games_numbers = [5,7]
 
     out = 'experiments'
-    synthetic_epochs = 2000
+    synthetic_epochs = 1000
     real_epochs = 20
     batch = 8
     lr = 0.01
@@ -63,7 +63,7 @@ def main():
     add_blur = False
     add_noise = True
     resnet_version = 18
-    folder_name = '2000_epoch_SGD_20_real_resnet18_noSTN_NoBishop07' # If None, will be set based on real_epochs
+    folder_name = '1000_epoch_SGD_20_real_noSTN_model2' # If None, will be set based on real_epochs
     #1.2 Parse command line arguments if needed
     if have_args:
         parser = argparse.ArgumentParser(description="Train ChessNet with STN")
@@ -139,7 +139,7 @@ def main():
     
     # 4. Model Initialization
     # Using the custom ChessNet from model.py
-    model = ChessNet(num_classes=13, resolution=RESOLUTION, resnet_version=resnet_version).to(device)
+    model = ChessNet(num_classes=13, resolution=RESOLUTION).to(device)
     
     optimizer = optim.SGD(model.parameters(), lr=lr)
     class_weights = torch.ones(13)
@@ -166,7 +166,7 @@ def main():
                 new_train_loader = DataLoader(real_train_ds, batch_size=batch, shuffle=True, num_workers=4)
                 optimizer.param_groups[0]['lr'] = lr*10
         elif add_blur or add_noise:
-            new_train_loader = data.generate_augmented_batches_by_photo(add_blur, add_noise, synthetic_train_loader)
+            new_train_loader = data.build_augmented_batches_loader(synthetic_train_loader)
         else:
             new_train_loader = synthetic_train_loader
 
