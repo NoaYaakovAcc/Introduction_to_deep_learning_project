@@ -128,7 +128,7 @@ def scan_game(game_root, csv_path):
         except (KeyError, ValueError):
             continue
         
-        matching_files = [file_path for file_path in all_image_files if file_name in file_path]
+        matching_files = [file_path for file_path in all_image_files if filename in file_path]
 
         for full_path in matching_files:
             samples.append(
@@ -177,7 +177,7 @@ class ChessBoardDataset(Dataset):
                 if char.isdigit():
                     labels.extend([12] * int(char))
                 else:
-                    labels.append(self.piece_to_index.get(char, 12))
+                    labels.append(self.piece_map.get(char, 12))
         
         # Ensure length is 64
         if len(labels) != 64:
