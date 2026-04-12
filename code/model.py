@@ -2,103 +2,89 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-class STN(nn.Module):
-    """
-    Spatial Transformer Network (STN).
-    Learns to estimate an affine transformation matrix (theta) to rectifty the input image.
-    Reference: 'Intro_to_STN (2).pdf' from course materials.
-    """
-    def __init__(self):
-        super(STN, self).__init__()
-        
-        # 1. Localization Network: Extracts features to predict transformation parameters
-        self.loc_net = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=7),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True),
-            nn.Conv2d(8, 10, kernel_size=5),
-            nn.MaxPool2d(2, stride=2),
-            nn.ReLU(True)
-        )
-        
-        # Regressor for the 3x2 affine matrix.
-        # We use AdaptiveAvgPool to ensure fixed input size for the Linear layer
-        # regardless of the input image dimensions.
-        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))
-        
-        self.fc_loc = nn.Sequential(
-            nn.Linear(10 * 4 * 4, 32),
-            nn.ReLU(True),
-            nn.Linear(32, 3 * 2) # Outputs 6 parameters for the affine matrix
-        )
-        
-        # Initialize with Identity transformation (no distortion)
-        # This helps the model start training from a stable state.
-        self.fc_loc[2].weight.data.zero_()
-        self.fc_loc[2].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
 
-    def forward(self, x):
-        xs = self.loc_net(x)
-        xs = self.adaptive_pool(xs)
-        xs = xs.view(-1, 10 * 4 * 4)
-        
-        theta = self.fc_loc(xs)
-        theta = theta.view(-1, 2, 3) # Shape: [Batch, 2, 3]
-        
-        # 2. Grid Generator and Sampler
-        # Creates a grid based on theta and samples pixels from input x
-        grid = F.affine_grid(theta, x.size(), align_corners=True)
-        x_transformed = F.grid_sample(x, grid, align_corners=True)
-        
-        return x_transformed
+NUMBER_OF_CHESS_CLASSES = 13
+DEFAULT_RESOLUTION = 480
+EXPANTION_RATIO = 1.3
+RESNET_VERSION =  18
+class ChessNetCheck(nn.Module):
+    """
+    Chessboard classification network.
 
-class ChessNet(nn.Module):
+    The model receives a full-board image, splits it into 64 tiles
+    (one per square), classifies each tile
+    using a pretrained ResNet backbone, and returns predictions for all
+    64 board positions.
+
+    Output shape:
+        [batch_size, 64, num_classes]
     """
-    End-to-End Network: STN -> Grid Slicing -> Classification.
-    """
-    def __init__(self, num_classes=13, resolution=480 ,expansion_ratio = 1.3, resnet_version=18):
-        super(ChessNet, self).__init__()
-        #self.stn = STN()
+
+    def __init__(
+        self,
+        num_classes: int = NUMBER_OF_CHESS_CLASSES,
+        resolution: int = DEFAULT_RESOLUTION,
+        expansion_ratio: float = EXPANTION_RATIO,
+        resnet_version: int = RESNET_VERSION,
+    ):
+        super().__init__()
+
+        self.num_classes = num_classes
         self.resolution = resolution
         self.base_tile_size = resolution // 8
 
         self.expansion_tile_size = int(self.base_tile_size * expansion_ratio)
         self.padding_amount = (self.expansion_tile_size - self.base_tile_size) // 2
-        if(resnet_version is 18):
-            self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        elif(resnet_version is 50):
-            self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        elif(resnet_version is 101):
-            self.backbone = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
 
+        if resnet_version == 18:
+            self.backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+        elif resnet_version == 50:
+            self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        else:
+            raise ValueError(f"Unsupported resnet_version: {resnet_version}")
+
+        # Avoid too much early downsampling for small tiles
         self.backbone.maxpool = nn.Identity()
 
         num_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Linear(num_features, num_classes)
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
 
-    def forward(self, x):
-        # 1. Apply STN to rectify the full board image
-        #x = self.stn(x) 
-        
-        
-        x_padded = F.pad(x, (self.padding_amount, self.padding_amount, self.padding_amount, self.padding_amount))
-        
+        Parameters:
+            x : torch.Tensor -> Input tensor of shape [B, 3, H, W]
+
+        Returns:
+            torch.Tensor -> Tensor of shape [B, 64, num_classes]
+
+        """
+            
+        x_padded = F.pad(
+            x,
+            (
+                self.padding_amount,
+                self.padding_amount,
+                self.padding_amount,
+                self.padding_amount,
+            ),
+        )
+
         kernel = self.expansion_tile_size
         stride = self.base_tile_size
-        
+
+        # Extract 8x8 tile grid from padded board image
         tiles = x_padded.unfold(2, kernel, stride).unfold(3, kernel, stride)
-        
-        # Permute to put the grid dimensions (8,8) together
+
+        # Reorder to [B, 8, 8, C, H, W]
         tiles = tiles.permute(0, 2, 3, 1, 4, 5).contiguous()
-        
-        
-        # Flatten the grid to treat each tile as a separate sample in the batch
-        # New shape: [B * 64, C, h, w]
+
+        # Flatten to [B * 64, C, H, W]
         tiles = tiles.view(-1, 3, kernel, kernel)
-        
-        
+
+        # Classify each tile
         logits = self.backbone(tiles)
-        
-        # Reshape back to [Batch, 64, NumClasses]
-        return logits.view(x.shape[0], 64, 13)
+
+        # Reshape back to [B, 64, num_classes]
+        return logits.view(x.shape[0], 64, self.num_classes)

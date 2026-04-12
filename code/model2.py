@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
+NUMBER_OF_CHESS_CLASSES = 13
+DEFAULT_RESOLUTION = 480
+EXPANTION_RATIO = 1.3
+RESNET_VERSION =  18
 class Classifier(nn.Module):
     """ResNet18-based feature extractor and classifier."""
     
@@ -21,7 +25,7 @@ class Classifier(nn.Module):
 class ChessNet(nn.Module):
     """End-to-End Chess Board Classifier. Slices board into tiles and classifies pieces."""
     
-    def __init__(self, num_classes=13, resolution=480, expansion_ratio=1.3):
+    def __init__(self, num_classes=NUMBER_OF_CHESS_CLASSES, resolution=DEFAULT_RESOLUTION, expansion_ratio=EXPANTION_RATIO):
         super().__init__()
         self.resolution = resolution
         self.base_tile_size = resolution // 8
