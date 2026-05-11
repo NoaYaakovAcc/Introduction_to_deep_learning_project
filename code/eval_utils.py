@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from model import ChessNet
+from config import MODEL_NAME
 from plot import plot_confusion_matrix
 
 from torchvision import transforms
@@ -323,7 +324,7 @@ def predict_board(image: np.ndarray) -> torch.Tensor:
     """
 
     # 1. Initialize model architecture
-    model = ChessNet(num_classes=13)
+    model = ChessNet(num_classes=13, model_name=MODEL_NAME)
     MODEL_PATH = 'best_model.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
